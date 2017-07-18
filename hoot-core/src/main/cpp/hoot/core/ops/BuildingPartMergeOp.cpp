@@ -64,7 +64,7 @@ BuildingPartMergeOp::BuildingPartMergeOp()
   {
     _buildingPartTagNames.insert(buildingPartTags[i].name.split("=")[0]);
   }
-  _buildingPartTagNames.insert("building:part");
+  _buildingPartTagNames.insert(MetadataTags::BuildingPart());
 }
 
 void BuildingPartMergeOp::_addContainedWaysToGroup(const Geometry& g,
@@ -359,7 +359,7 @@ RelationPtr BuildingPartMergeOp::combineParts(const OsmMapPtr& map,
   for (size_t i = 0; i < parts.size(); i++)
   {
     parts[i]->getTags().remove("building");
-    parts[i]->getTags()["building:part"] = "yes";
+    parts[i]->getTags()[MetadataTags::BuildingPart()] = "yes";
   }
 
   map->addRelation(building);

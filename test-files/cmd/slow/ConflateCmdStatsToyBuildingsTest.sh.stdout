@@ -1,8 +1,8 @@
 stats = (stat) OR (input map 1 stat) (input map 2 stat) (output map stat)
 Node Count	70	41	90	
-Way Count	10	8	13	
+Way Count	10	8	12	
 Relation Count	0	0	1	
-Total Feature Count	10	8	14	
+Total Feature Count	10	8	13	
 Total Conflatable Features	10	8	0	
 Percentage of Total Features Conflatable	100	100	0	
 Untagged Feature Count	0	0	0	
@@ -10,13 +10,13 @@ Total Unconflatable Features	0	0	0
 Percentage of Total Features Unconflatable	0	0	0	
 Number of Match Creators	5	5	5	
 Features Conflatable by: hoot::BuildingMatchCreator	10	8	0	
-Total Conflated Features	0	0	5	
-Percentage of Total Features Conflated	0	0	35.71428571428572	
+Total Conflated Features	0	0	4	
+Percentage of Total Features Conflated	0	0	30.76923076923077	
 Total Features Marked for Review	0	0	0	
 Percentage of Total Features Marked for Review	0	0	0	
 Total Number of Reviews to be Made	0	0	0	
 Total Unmatched Features	10	8	9	
-Percentage of Total Features Unmatched	100	100	64.28571428571429	
+Percentage of Total Features Unmatched	100	100	69.23076923076923	
 POI Count	0	0	0	
 Conflatable POIs	0	0	0	
 Conflated POIs	0	0	0	
@@ -54,6 +54,7 @@ Meters of Waterway Processed by Conflation	0	0	0
 Percentage of Waterways Conflated	0	0	0	
 Percentage of Waterways Marked for Review	0	0	0	
 Percentage of Unmatched Waterways	0	0	0	
-Difference Between Total Features in Output and Total Features in Inputs			-4	
-Percentage Difference Between Total Features in Output and Total Features in Inputs			-22.22222222222222	
+Difference Between Total Features in Output and Total Features in Inputs			-5	
+Percentage Difference Between Total Features in Output and Total Features in Inputs			-27.77777777777778	
 
+16:04:43.702 INFO  .../hoot/core/cmd/ConflateCmd.cpp( 251) Conflation job completed.
