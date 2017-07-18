@@ -1,6 +1,9 @@
+17:16:31.262 INFO  ...ore/io/OsmMapReaderFactory.cpp( 138) Loading map from /fouo/hoot-release-2/hoot/test-files/cmd/slow/csr/csr.osm...
+17:16:31.270 INFO  ...ore/io/OsmMapReaderFactory.cpp( 138) Loading map from /fouo/hoot-release-2/hoot/test-files/cmd/slow/csr/csr.osm...
+17:16:31.275 INFO  ...hoot/core/schema/OsmSchema.cpp(1856) Loading translation files...
 
 |                    | amenity=restaurant | building=yes | name=<NULL> | name=<SIMILAR> | 
 | amenity=restaurant |                  4 |              |             |                | 
-|       building=yes |                    |           28 |             |                | 
+|       building=yes |                    |           16 |             |                | 
 |        name=<NULL> |                    |              |           4 |                | 
-|     name=<SIMILAR> |                    |              |             |             24 | 
+|     name=<SIMILAR> |                    |              |             |             12 | 
