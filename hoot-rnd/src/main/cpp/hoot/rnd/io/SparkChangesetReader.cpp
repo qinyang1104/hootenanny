@@ -81,7 +81,7 @@ bool SparkChangesetReader::hasMoreChanges()
   return !_file.atEnd();
 }
 
-Change SparkChangesetReader::readNextChange()
+boost::shared_ptr<Change> SparkChangesetReader::readNextChange()
 {
   const QStringList lineParts = QString::fromUtf8(_file.readLine().constData()).split("\t");
   LOG_VART(lineParts);
@@ -128,7 +128,7 @@ Change SparkChangesetReader::readNextChange()
   NodePtr node = tmpMap->getNodes().begin()->second;
   LOG_VART(node);
 
-  return Change(changeType, node);
+  return boost::shared_ptr<Change>(new Change(changeType, node));
 }
 
 

@@ -75,9 +75,9 @@ public:
 
   bool hasMoreChanges() { return _ctr < _max; }
 
-  Change readNextChange()
+  boost::shared_ptr<Change> readNextChange()
   {
-    Change change;
+    boost::shared_ptr<Change> change;
     Change::ChangeType changeType = _getRandomType();
 
     switch ((ElementType::Type)(Tgs::Random::instance()->generateInt() % 3))
@@ -85,9 +85,9 @@ public:
     default:
     case ElementType::Node:
       {
-        change =
-          Change(
-            changeType, NodePtr(new Node(Status::Unknown1, ++_node, _getLon(), _getLat(), 15.0)));
+        change.reset(
+          new Change(
+            changeType, NodePtr(new Node(Status::Unknown1, ++_node, _getLon(), _getLat(), 15.0))));
       }
       break;
     case ElementType::Way:
@@ -98,7 +98,7 @@ public:
         way->addNode(node1->getId());
         way->addNode(node2->getId());
         way->setTag("key1", "value1");
-        change = Change(changeType, way);
+        change.reset(new Change(changeType, way));
       }
       break;
     case ElementType::Relation:
@@ -113,7 +113,7 @@ public:
         relation->addElement("role1", node1->getElementId());
         relation->addElement("role2", way->getElementId());
         relation->setTag("key2", "value2");
-        change = Change(changeType, relation);
+        change.reset(new Change(changeType, relation));
       }
       break;
     }

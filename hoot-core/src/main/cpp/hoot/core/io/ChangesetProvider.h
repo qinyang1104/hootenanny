@@ -77,7 +77,7 @@ public:
    *
    * @return a changeset change
    */
-  virtual Change readNextChange() = 0;
+  virtual boost::shared_ptr<Change> readNextChange() = 0;
 
 };
 

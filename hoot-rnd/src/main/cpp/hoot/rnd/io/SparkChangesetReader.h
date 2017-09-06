@@ -67,7 +67,7 @@ public:
   /**
    * @see ChangesetProvider
    */
-  virtual Change readNextChange();
+  virtual boost::shared_ptr<Change> readNextChange();
 
 private:
 

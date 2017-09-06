@@ -65,16 +65,28 @@ void ChangesetDeriver::close()
 
 bool ChangesetDeriver::hasMoreChanges()
 {
-  if (_next.getElement().get() == 0)
+  if (!_change || _change->getElement().get() == 0)
   {
-    _next = _nextChange();
+    _change = _nextChange();
   }
-  return _next.getElement().get() != 0;
+  return _change != 0 && _change->getElement().get() != 0;
+  //return _from->hasMoreElements() || _to->hasMoreElements();
 }
 
-Change ChangesetDeriver::_nextChange()
+boost::shared_ptr<Change> ChangesetDeriver::readNextChange()
 {
-  Change result;
+  if (!_change->getElement())
+  {
+    _change = _nextChange();
+  }
+  boost::shared_ptr<Change> result = _change;
+  _change->clearElement();
+  return result;
+}
+
+boost::shared_ptr<Change> ChangesetDeriver::_nextChange()
+{
+  boost::shared_ptr<Change> result;
 
   LOG_VART(_fromE.get());
   LOG_VART(_from->hasMoreElements());
@@ -103,7 +115,7 @@ Change ChangesetDeriver::_nextChange()
       "run out of from elements; 'from' element null; 'to' element not null: " <<
       _toE->getElementId() << "; creating 'to' element...");
 
-    result = Change(Change::Create, _toE);
+    result.reset(new Change(Change::Create, _toE));
 
     if (_to->hasMoreElements())
     {
@@ -126,7 +138,7 @@ Change ChangesetDeriver::_nextChange()
       "run out of 'to' elements; to' element null; 'from' element not null: " <<
       _fromE->getElementId() << "; deleting 'from' element...");
 
-    result = Change(Change::Delete, _fromE);
+    result.reset(new Change(Change::Delete, _fromE));
 
     if (_from->hasMoreElements())
     {
@@ -193,7 +205,7 @@ Change ChangesetDeriver::_nextChange()
         "run out of from elements; 'from' element null; 'to' element not null: " <<
         _toE->getElementId() << "; creating 'to' element...");
 
-      result = Change(Change::Create, _toE);
+      result.reset(new Change(Change::Create, _toE));
 
       if (_to->hasMoreElements())
       {
@@ -216,7 +228,7 @@ Change ChangesetDeriver::_nextChange()
         "run out of 'to' elements; to' element null; 'from' element not null: " <<
         _fromE->getElementId() << "; deleting 'from' element...");
 
-      result = Change(Change::Delete, _fromE);
+      result.reset(new Change(Change::Delete, _fromE));
 
       if (_from->hasMoreElements())
       {
@@ -238,7 +250,7 @@ Change ChangesetDeriver::_nextChange()
         "'from' element id: " << _fromE->getElementId() << " equals 'to' element id: " <<
         _toE->getElementId() << " modifying 'to' element: ");
 
-      result = Change(Change::Modify, _toE, _fromE);
+      result.reset(new Change(Change::Modify, _toE, _fromE));
 
       if (_to->hasMoreElements())
       {
@@ -285,7 +297,7 @@ Change ChangesetDeriver::_nextChange()
           "'from' element id: " << _fromE->getElementId() << " less than 'to' element id: " <<
           _toE->getElementId() << "; deleting 'from' element...");
 
-        result = Change(Change::Delete, _fromE);
+        result.reset(new Change(Change::Delete, _fromE));
       }
       else
       {
@@ -297,7 +309,7 @@ Change ChangesetDeriver::_nextChange()
           "Skipping delete on unknown1 'from' element " << _fromE->getElementId() <<
           " due to " << ConfigOptions::getChangesetAllowDeletingReferenceFeaturesKey() <<
           "=false...");
-        result = Change(Change::Unknown, _fromE);
+        result.reset(new Change(Change::Unknown, _fromE));
       }
 
       if (_from->hasMoreElements())
@@ -320,7 +332,7 @@ Change ChangesetDeriver::_nextChange()
         "'from' element id: " << _fromE->getElementId() << " greater than 'to' element id: " <<
         _toE->getElementId() << "; creating 'to' element...");
 
-      result = Change(Change::Create, _toE);
+      result.reset(new Change(Change::Create, _toE));
 
       if (_to->hasMoreElements())
       {
@@ -338,18 +350,6 @@ Change ChangesetDeriver::_nextChange()
     }
   }
 
-  return result;
-}
-
-Change ChangesetDeriver::readNextChange()
-{
-  if (!_next.getElement())
-  {
-    _next = _nextChange();
-  }
-
-  Change result = _next;
-  _next.clearElement();
   return result;
 }
 

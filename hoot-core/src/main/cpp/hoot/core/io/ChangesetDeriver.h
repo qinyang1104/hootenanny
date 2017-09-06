@@ -65,24 +65,24 @@ public:
   /**
    * @see ChangeSetProvider
    */
-  virtual Change readNextChange();
+  virtual boost::shared_ptr<Change> readNextChange();
 
   long getNumFromElementsParsed() const { return _numFromElementsParsed; }
   long getNumToElementsParsed() const { return _numToElementsParsed; }
 
 private:
 
-  Change _nextChange();
-
   ElementInputStreamPtr _from;
   ElementInputStreamPtr _to;
-  Change _next;
   ElementPtr _fromE, _toE;
   ElementComparer _elementComparer;
+  boost::shared_ptr<Change> _change;
 
   long _numFromElementsParsed;
   long _numToElementsParsed;
   bool _allowDeletingReferenceFeatures;
+
+  boost::shared_ptr<Change> _nextChange();
 
 };
 

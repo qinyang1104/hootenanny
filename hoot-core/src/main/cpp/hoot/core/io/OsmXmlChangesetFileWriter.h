@@ -85,7 +85,7 @@ private:
   int _precision;
   long _changesetMaxSize;
 
-  Change _change;
+  boost::shared_ptr<Change> _change;
 
   bool _multipleChangesetsWritten;
 
