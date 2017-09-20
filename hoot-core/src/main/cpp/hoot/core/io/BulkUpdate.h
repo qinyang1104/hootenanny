@@ -24,52 +24,32 @@
  *
  * @copyright Copyright (C) 2016, 2017 DigitalGlobe (http://www.digitalglobe.com/)
  */
-#ifndef SQLBULKINSERT_H
-#define SQLBULKINSERT_H
+#ifndef BULKUPDATE_H
+#define BULKUPDATE_H
 
 // Qt
-#include <QSqlQuery>
-#include <QStringList>
-
-#include "BulkInsert.h"
-
-class QSqlDatabase;
+#include <QVariant>
 
 namespace hoot
 {
 
 /**
- * This is designed for combining multiple insert SQL operations into a single insert SQL statement.
+ * Interface for bulk update of elements into a database
  */
-class SqlBulkInsert : public BulkInsert
+class BulkUpdate
 {
 public:
 
-  static QString TRUE_STR;
-  static QString FALSE_STR;
+  virtual ~BulkUpdate() {}
 
-  SqlBulkInsert(QSqlDatabase& db, const QString& tableName, const QStringList& columns);
+  virtual void flush() = 0;
 
-  virtual ~SqlBulkInsert();
+  virtual void update(const long id, const QList<QVariant> l) = 0;
 
-  virtual void flush();
+  virtual int getPendingCount() const = 0;
 
-  virtual int getPendingCount() const { return _pending.size(); }
-
-  virtual void insert(const QList<QVariant> l);
-
-  inline static QString escape(const QVariant& v);
-
-private:
-
-  QList< QList<QVariant> > _pending;
-  QSqlQuery _query;
-  QSqlDatabase _db;
-  QString _tableName;
-  QStringList _columns;
-  double _time;
 };
 
 }
 
-#endif // SQLBULKINSERT_H
+#endif // BULKUPDATE_H

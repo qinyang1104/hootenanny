@@ -42,6 +42,9 @@
 namespace hoot
 {
 
+QString SqlBulkInsert::TRUE_STR = "TRUE";
+QString SqlBulkInsert::FALSE_STR = "FALSE";
+
 SqlBulkInsert::SqlBulkInsert(QSqlDatabase& db, const QString &tableName,
   const QStringList &columns) :
     _db(db),
@@ -49,8 +52,6 @@ SqlBulkInsert::SqlBulkInsert(QSqlDatabase& db, const QString &tableName,
     _columns(columns)
 {
   _time = 0;
-  _true = "TRUE";
-  _false = "FALSE";
 }
 
 SqlBulkInsert::~SqlBulkInsert()
@@ -63,7 +64,7 @@ SqlBulkInsert::~SqlBulkInsert()
   }
 }
 
-inline QString SqlBulkInsert::_escape(const QVariant& v) const
+inline QString SqlBulkInsert::escape(const QVariant& v)
 {
   switch (v.type())
   {
@@ -81,7 +82,7 @@ inline QString SqlBulkInsert::_escape(const QVariant& v) const
       result.reserve(60);
       result.append(v.toString());
       //check tags string return from HootApiDb::_escapeTags(tags)
-      if (!result.contains("hstore(ARRAY", Qt::CaseInsensitive) && result != "''")
+      if (!result.contains("hstore(ARRAY", Qt::CaseInsensitive) && result != QLatin1String("''"))
       {
          result.replace("'", "''");
          result = "'" % result % "'";
@@ -90,7 +91,7 @@ inline QString SqlBulkInsert::_escape(const QVariant& v) const
     }
   case QVariant::Bool:
     {
-      return v.toBool() ? _true : _false;
+      return v.toBool() ? TRUE_STR : FALSE_STR;
     }
   default:
     throw UnsupportedException();
@@ -131,11 +132,11 @@ void SqlBulkInsert::flush()
       {
         if (j == 0)
         {
-          sql.append(_escape(_pending[i][j]));
+          sql.append(escape(_pending[i][j]));
         }
         else
         {
-          sql.append(comma % _escape(_pending[i][j]));
+          sql.append(comma % escape(_pending[i][j]));
         }
       }
 

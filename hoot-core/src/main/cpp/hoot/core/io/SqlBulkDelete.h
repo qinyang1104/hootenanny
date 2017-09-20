@@ -53,8 +53,6 @@ public:
 
   virtual int getPendingCount() const { return _pending.size(); }
 
-  virtual QString getTableName() const { return _tableName; }
-
   virtual void deleteElement(const long id);
 
 private:

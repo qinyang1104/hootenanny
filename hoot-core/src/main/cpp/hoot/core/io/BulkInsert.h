@@ -48,8 +48,6 @@ public:
 
   virtual int getPendingCount() const = 0;
 
-  virtual QString getTableName() const = 0;
-
 };
 
 }
