@@ -40,28 +40,34 @@ namespace hoot
 {
 
 /**
- * This is designed for batching multiple update SQL operations.
+ * This is designed for batching multiple update SQL operations in a single call.
  */
 class SqlBulkUpdate : public BulkUpdate
 {
 
 public:
 
-  SqlBulkUpdate(QSqlDatabase& db, const QString& tableName, const QStringList& columns);
+  SqlBulkUpdate(QSqlDatabase& db, const QString tableName, const QStringList columns);
 
   virtual ~SqlBulkUpdate();
 
   virtual void flush();
 
-  virtual int getPendingCount() const { return _pending.size(); }
+  virtual int getPendingCount() const { return _pendingIds.size(); }
 
-  virtual void update(const long id, const QList<QVariant> l);
+  virtual void update(const long id, const QVariantList vals);
 
 private:
 
-  QList< QMap<long, QList<QVariant> > > _pending;
+  QVariantList _pendingIds;
+  QList<QVariantList> _pendingVals;
   boost::shared_ptr<QSqlQuery> _query;
   double _time;
+  QString _tableName;
+  QStringList _columns;
+  QSqlDatabase _db;
+
+  void _initValsList();
 };
 
 }

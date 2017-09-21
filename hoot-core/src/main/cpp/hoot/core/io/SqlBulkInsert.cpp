@@ -64,7 +64,7 @@ SqlBulkInsert::~SqlBulkInsert()
   }
 }
 
-inline QString SqlBulkInsert::escape(const QVariant& v)
+inline QString SqlBulkInsert::_escape(const QVariant& v)
 {
   switch (v.type())
   {
@@ -130,11 +130,11 @@ void SqlBulkInsert::flush()
       {
         if (j == 0)
         {
-          sql.append(escape(_pending[i][j]));
+          sql.append(_escape(_pending[i][j]));
         }
         else
         {
-          sql.append(comma % escape(_pending[i][j]));
+          sql.append(comma % _escape(_pending[i][j]));
         }
       }
 

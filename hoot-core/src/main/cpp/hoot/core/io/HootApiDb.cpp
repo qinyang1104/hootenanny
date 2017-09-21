@@ -37,6 +37,8 @@
 #include <hoot/core/io/TableType.h>
 #include <hoot/core/util/DbUtils.h>
 #include <hoot/core/io/SqlBulkDelete.h>
+#include <hoot/core/io/SqlBulkUpdate.h>
+#include <hoot/core/io/HootApiDbSqlStatementFormatter.h>
 
 // qt
 #include <QStringList>
@@ -87,7 +89,8 @@ void HootApiDb::_init()
   _nodesInsertElapsed = 0;
   // 500 found experimentally on my desktop -JRS
   _nodesPerBulkInsert = recordsPerBulkInsert;
-  _nodesPerBulkDelete = recordsPerBulkInsert; //TODO: figure out what this should be
+  _nodesPerBulkUpdate = recordsPerBulkInsert;
+  _nodesPerBulkDelete = recordsPerBulkInsert;
 
   _wayNodesInsertElapsed = 0;
   // arbitrary, needs benchmarking
@@ -144,6 +147,7 @@ void HootApiDb::_checkLastMapId(long mapId)
   if (_lastMapId != mapId)
   {
     _flushBulkInserts();
+    _flushBulkUpdates();
     _flushBulkDeletes();
     _resetQueries();
     _nodeIdReserver.reset();
@@ -160,6 +164,7 @@ void HootApiDb::close()
 
   createPendingMapIndexes();
   _flushBulkInserts();
+  _flushBulkUpdates();
   _flushBulkDeletes();
 
   _resetQueries();
@@ -192,6 +197,7 @@ void HootApiDb::commit()
 
   createPendingMapIndexes();
   _flushBulkInserts();
+  _flushBulkUpdates();
   _flushBulkDeletes();
   _resetQueries();
   if (!_db.commit())
@@ -456,6 +462,16 @@ void HootApiDb::_flushBulkInserts()
   if (_relationBulkInsert != 0)
   {
     _relationBulkInsert->flush();
+  }
+}
+
+void HootApiDb::_flushBulkUpdates()
+{
+  LOG_TRACE("Flushing bulk updates...");
+
+  if (_nodeBulkUpdate != 0)
+  {
+    _nodeBulkUpdate->flush();
   }
 }
 
@@ -812,6 +828,43 @@ void HootApiDb::updateNode(ConstNodePtr node)
   return updateNode(node->getId(), node->getY(), node->getX(), node->getVersion(), node->getTags());
 }
 
+void HootApiDb::updateNode(const long id, const double lat, const double lon, const long version,
+                           const Tags& tags)
+{
+  LOG_TRACE("Updating node: " << id << "...");
+
+  const long mapId = _currMapId;
+  double start = Tgs::Time::getTime();
+
+  _checkLastMapId(mapId);
+
+  if (_nodeBulkUpdate == 0)
+  {
+    QStringList columns;
+    columns << "latitude" << "longitude" << "changeset_id" << "timestamp" <<
+               "tile" << "version" << "tags";
+    _nodeBulkUpdate.reset(new SqlBulkUpdate(_db, getCurrentNodesTableName(mapId), columns));
+  }
+
+  QList<QVariant> v;
+  v.append(lat);
+  v.append(lon);
+  v.append((qlonglong)_currChangesetId);
+  v.append(OsmUtils::currentTimeAsString());
+  v.append(tileForPoint(lat, lon));
+  v.append((qlonglong)version);
+  v.append(HootApiDbSqlStatementFormatter::toTagsString(tags));
+
+  _nodeBulkUpdate->update(id, v);
+  _nodesUpdateElapsed += Tgs::Time::getTime() - start;
+  if (_nodeBulkUpdate->getPendingCount() >= _nodesPerBulkUpdate)
+  {
+    _nodeBulkUpdate->flush();
+  }
+
+  LOG_TRACE("Updated node: " << ElementId(ElementType::Node, id));
+}
+
 void HootApiDb::deleteNode(ConstNodePtr node)
 {
   LOG_TRACE("Deleting node: " << node->getId() << "...");
@@ -1097,6 +1150,8 @@ void HootApiDb::_resetQueries()
 
   // bulk insert objects.
   _nodeBulkInsert.reset();
+  _nodeBulkUpdate.reset();
+  _nodeBulkDelete.reset();
   _nodeIdReserver.reset();
   _relationBulkInsert.reset();
   _relationIdReserver.reset();
@@ -1331,46 +1386,6 @@ vector<RelationData::Entry> HootApiDb::selectMembersForRelation(long relationId)
   }
 
   return result;
-}
-
-void HootApiDb::updateNode(const long id, const double lat, const double lon, const long version,
-                           const Tags& tags)
-{
-  LOG_TRACE("Updating node: " << id << "...");
-
-  const long mapId = _currMapId;
-  _flushBulkInserts();
-
-  _checkLastMapId(mapId);
-
-  if (_updateNode == 0)
-  {
-    _updateNode.reset(new QSqlQuery(_db));
-    _updateNode->prepare(
-      "UPDATE " + getCurrentNodesTableName(mapId) +
-      " SET latitude=:latitude, longitude=:longitude, changeset_id=:changeset_id, "
-      " timestamp=:timestamp, tile=:tile, version=:version, tags=" + _escapeTags(tags) +
-      " WHERE id=:id");
-  }
-
-  _updateNode->bindValue(":id", (qlonglong)id);
-  _updateNode->bindValue(":latitude", lat);
-  _updateNode->bindValue(":longitude", lon);
-  _updateNode->bindValue(":changeset_id", (qlonglong)_currChangesetId);
-  _updateNode->bindValue(":timestamp", OsmUtils::currentTimeAsString());
-  _updateNode->bindValue(":tile", (qlonglong)tileForPoint(lat, lon));
-  _updateNode->bindValue(":version", (qlonglong)version);
-
-  if (_updateNode->exec() == false)
-  {
-    QString err = QString("Error executing query: %1 (%2)").arg(_updateNode->executedQuery()).
-        arg(_updateNode->lastError().text());
-    throw HootException(err);
-  }
-
-  _updateNode->finish();
-
-  LOG_TRACE("Updated node: " << ElementId(ElementType::Node, id));
 }
 
 void HootApiDb::updateRelation(const long id, const long version, const Tags& tags)

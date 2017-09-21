@@ -29,13 +29,11 @@
 // hoot
 #include <hoot/core/util/HootException.h>
 #include <hoot/core/util/Log.h>
-#include <hoot/core/io/SqlBulkInsert.h>
 
 // Qt
 #include <QtSql/QSqlDatabase>
 #include <QSqlError>
 #include <QStringList>
-#include <QStringBuilder>
 
 // tgs
 #include <tgs/System/Time.h>
@@ -43,46 +41,108 @@
 namespace hoot
 {
 
-SqlBulkUpdate::SqlBulkUpdate(QSqlDatabase& db, const QString &tableName, const QStringList& columns) :
-_time(0)
+SqlBulkUpdate::SqlBulkUpdate(QSqlDatabase& db, const QString tableName, const QStringList columns) :
+_time(0),
+_tableName(tableName),
+_columns(columns),
+_db(db)
 {
-  QString sql ="UPDATE " + tableName + " SET ";
-  for (int i = 0; i < columns.size(); i++)
+  QString sql ="UPDATE " + _tableName + " SET ";
+  for (int i = 0; i < _columns.size(); i++)
   {
     sql += columns.at(i) + "= ?, ";
   }
   sql.chop(2);
   sql += " WHERE ID = ?";
-  _query.reset(new QSqlQuery(db));
-  _query->prepare(sql);
+  LOG_VART(sql);
+  _query.reset(new QSqlQuery(_db));
+  if (!_query->prepare(sql))
+  {
+    LOG_ERROR("Unable to prepare query: " << sql);
+  }
+  LOG_VART(_query->executedQuery());
+
+  _initValsList();
 }
 
 SqlBulkUpdate::~SqlBulkUpdate()
 {
-  //TODO: bring back table name mem var
-//  LOG_DEBUG("(" << _tableName << ") Total time updating: " << _time);
-//  if (_pending.size() > 0)
-//  {
-//    LOG_WARN("(" << _tableName << ") There are pending inserts in SqlBulkUpdate. You should call "
-//             "flush before destruction.");
-//  }
+  LOG_DEBUG("(" << _tableName << ") Total time updating: " << _time);
+  if (_pendingIds.size() > 0)
+  {
+    LOG_WARN("(" << _tableName << ") There are pending updates in SqlBulkUpdate. You should call "
+             "flush before destruction.");
+  }
   _query.reset();
+}
+
+void SqlBulkUpdate::_initValsList()
+{
+  for (int i = 0; i < _columns.size(); i++)
+  {
+    _pendingVals.append(QVariantList());
+  }
 }
 
 void SqlBulkUpdate::flush()
 {
-  for (QList< QMap<long, QList<QVariant> > >::const_iterator it = _pending.begin();
-       it != _pending.end(); ++it)
-  {
+  LOG_TRACE("Flushing bulk update...");
+  LOG_VART(_pendingIds.size());
+  LOG_VART(_pendingVals.size());
 
+  if (_pendingIds.size() > 0)
+  {
+    double start = Tgs::Time::getTime();
+
+    assert(_pendingIds.size() == _pendingVals.at(0).size());
+    for (int i = 0; i < _pendingVals.size(); i++)
+    {
+      LOG_VART(_pendingVals.at(i));
+      LOG_VART(_pendingVals.at(i).size());
+      _query->addBindValue(_pendingVals.at(i));
+    }
+    LOG_VART(_pendingIds);
+    _query->addBindValue(_pendingIds);
+    LOG_TRACE(_query->lastQuery());
+
+    if (_query->execBatch() == false)
+    {
+      LOG_ERROR(_query->executedQuery().left(500));
+      LOG_ERROR(_query->lastError().text().left(500));
+      throw HootException(
+        QString("Error executing bulk insert: %1 (%2)")
+        .arg(_query->lastError().text().left(500)).arg(_query->executedQuery()).left(500));
+    }
+    _query->finish();
+
+    _pendingIds.clear();
+    _pendingVals.clear();
+    _initValsList();
+    double elapsed = Tgs::Time::getTime() - start;
+    _time += elapsed;
   }
 }
 
-void SqlBulkUpdate::update(const long id, const QList<QVariant> l)
+void SqlBulkUpdate::update(const long id, const QVariantList vals)
 {
-  QMap<long, QList<QVariant> > idMap;
-  idMap[id] = l;
-  _pending.append(idMap);
+  LOG_VART(_columns.size());
+  LOG_VART(vals.size());
+  LOG_VART(vals);
+  LOG_VART(_pendingIds.size());
+  LOG_VART(_pendingVals.size());
+
+  if (vals.size() != _columns.size())
+  {
+    LOG_VART(_columns);
+    throw IllegalArgumentException("Expected vals to have the same size as _columns.");
+  }
+  _pendingIds.append((qlonglong)id);
+  //The vals come in as a complete set for one record, and the batch exec wants to see a separate
+  //list for each val type
+  for (int i = 0; i < vals.size(); i++)
+  {
+    _pendingVals[i].append(vals.at(i));
+  }
 }
 
 }

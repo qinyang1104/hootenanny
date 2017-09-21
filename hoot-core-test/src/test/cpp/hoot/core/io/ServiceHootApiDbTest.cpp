@@ -525,8 +525,10 @@ public:
 
 
     database.setUserId(database.getOrCreateUser(userEmail(), "HootApiDbTest"));
+    database.transaction();
     database.beginChangeset();
     database.updateNode(nodeId, 3.1415, 2.71828, 1, Tags());
+    database.commit();
 
     ServicesDbTestUtils::compareRecords(
           "SELECT latitude, longitude, visible, tile, version FROM " +

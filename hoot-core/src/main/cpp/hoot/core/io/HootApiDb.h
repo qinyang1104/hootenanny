@@ -31,6 +31,7 @@
 #include <hoot/core/elements/Node.h>
 #include <hoot/core/elements/Way.h>
 #include <hoot/core/io/BulkDelete.h>
+#include <hoot/core/io/BulkUpdate.h>
 
 namespace hoot
 {
@@ -358,6 +359,9 @@ private:
   boost::shared_ptr<BulkInsert> _nodeBulkInsert;
   long _nodesPerBulkInsert;
   double _nodesInsertElapsed;
+  boost::shared_ptr<BulkUpdate> _nodeBulkUpdate;
+  long _nodesPerBulkUpdate;
+  double _nodesUpdateElapsed;
   boost::shared_ptr<BulkDelete> _nodeBulkDelete;
   long _nodesPerBulkDelete;
   double _nodesDeleteElapsed;
@@ -422,6 +426,7 @@ private:
   void _copyTableStructure(QString from, QString to);
 
   void _flushBulkInserts();
+  void _flushBulkUpdates();
   void _flushBulkDeletes();
   long _getNextNodeId();
   long _getNextRelationId();

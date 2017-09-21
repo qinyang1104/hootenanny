@@ -44,7 +44,7 @@ public:
 
   virtual void flush() = 0;
 
-  virtual void update(const long id, const QList<QVariant> l) = 0;
+  virtual void update(const long id, const QVariantList vals) = 0;
 
   virtual int getPendingCount() const = 0;
 

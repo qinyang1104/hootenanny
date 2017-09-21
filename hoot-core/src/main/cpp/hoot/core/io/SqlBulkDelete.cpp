@@ -66,6 +66,7 @@ void SqlBulkDelete::flush()
   if (_pending.size() > 0)
   {
     double start = Tgs::Time::getTime();
+
     QString sql;
     sql.reserve(_pending.size());
     sql.append(QLatin1Literal("DELETE FROM ") %
@@ -73,8 +74,8 @@ void SqlBulkDelete::flush()
         QLatin1Literal(" WHERE id IN (") %
         _pending.join(",") %
         QLatin1Literal(")"));
-
     LOG_VART(sql);
+
     QSqlQuery q(_db);
     if (q.exec(sql) == false)
     {
@@ -83,7 +84,6 @@ void SqlBulkDelete::flush()
       throw HootException(QString("Error executing bulk delete: %1 (%2)").arg(q.lastError().text()).
                           arg(sql.left(500)));
     }
-
     q.finish();
 
     _pending.clear();

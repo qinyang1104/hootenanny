@@ -58,8 +58,6 @@ public:
 
   virtual void insert(const QList<QVariant> l);
 
-  inline static QString escape(const QVariant& v);
-
 private:
 
   QList< QList<QVariant> > _pending;
@@ -68,6 +66,8 @@ private:
   QString _tableName;
   QStringList _columns;
   double _time;
+
+  inline QString _escape(const QVariant& v);
 };
 
 }

@@ -75,7 +75,7 @@ void HootApiDbSqlStatementFormatter::_initOutputFormatStrings(const QString deli
     formatString.replace("\t", delimiter);
 }
 
-QString HootApiDbSqlStatementFormatter::_toTagsString(const Tags& tags)
+QString HootApiDbSqlStatementFormatter::toTagsString(const Tags& tags)
 {
   QString tagsStr;
   for (Tags::const_iterator it = tags.begin(); it != tags.end(); ++it)
@@ -144,7 +144,7 @@ QString HootApiDbSqlStatementFormatter::nodeToSqlString(const ConstNodePtr& node
   if (node->getTags().size() > 0)
   {
     nodeStr.replace(
-      "\\N", OsmApiDbSqlStatementFormatter::escapeCopyToData(_toTagsString(node->getTags())));
+      "\\N", OsmApiDbSqlStatementFormatter::escapeCopyToData(toTagsString(node->getTags())));
   }
 
   return nodeStr;
@@ -160,7 +160,7 @@ QString HootApiDbSqlStatementFormatter::wayToSqlString(const long wayId, const l
       .arg(_dateString);
   if (tags.size() > 0)
   {
-    wayStr.replace("\\N", OsmApiDbSqlStatementFormatter::escapeCopyToData(_toTagsString(tags)));
+    wayStr.replace("\\N", OsmApiDbSqlStatementFormatter::escapeCopyToData(toTagsString(tags)));
   }
 
   return wayStr;
@@ -189,7 +189,7 @@ QString HootApiDbSqlStatementFormatter::relationToSqlString(const long relationI
       .arg(_dateString);
   if (tags.size() > 0)
   {
-    relationStr.replace("\\N", OsmApiDbSqlStatementFormatter::escapeCopyToData(_toTagsString(tags)));
+    relationStr.replace("\\N", OsmApiDbSqlStatementFormatter::escapeCopyToData(toTagsString(tags)));
   }
 
   return relationStr;
@@ -234,7 +234,7 @@ QString HootApiDbSqlStatementFormatter::changesetToSqlString(const long changese
       .arg(QString::number(changesetBounds.getMaxX(), 'g', _precision))
       .arg(_dateString)
       .arg(QString::number(numChangesInChangeset))
-      .arg(OsmApiDbSqlStatementFormatter::escapeCopyToData(_toTagsString(tags)));
+      .arg(OsmApiDbSqlStatementFormatter::escapeCopyToData(toTagsString(tags)));
 }
 
 QString HootApiDbSqlStatementFormatter::elementToSqlString(const ConstElementPtr& element,
