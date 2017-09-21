@@ -54,7 +54,6 @@ namespace hoot
 {
 
 MultiaryIngester::MultiaryIngester() :
-_sortInput(true),
 _logUpdateInterval(ConfigOptions().getApidbBulkInserterFileOutputStatusUpdateInterval())
 {
   //in order for the sorting to work, all original POI ids must be retained...no new ones
@@ -62,14 +61,13 @@ _logUpdateInterval(ConfigOptions().getApidbBulkInserterFileOutputStatusUpdateInt
   conf().set(ConfigOptions::getHootapiDbWriterRemapIdsKey(), false);
   //for the changeset derivation to work, all input IDs must not be modified as they are read
   conf().set(ConfigOptions::getReaderUseDataSourceIdsKey(), true);
-  //script for translating input to OSM
-  conf().set(ConfigOptions::getTranslationScriptKey(), "translations/OSM_Ingest.js");
 
   //for debugging only
   //conf().set(ConfigOptions::getMaxElementsPerPartialMapKey(), 1000);
 }
 
-void MultiaryIngester::_doInputErrorChecking(const QString newInput, const QString referenceOutput,
+void MultiaryIngester::_doInputErrorChecking(const QString newInput, const QString translationScript,
+                                             const QString referenceOutput,
                                              const QString changesetOutput)
 {
   if (!OsmMapReaderFactory::getInstance().hasElementInputStream(newInput))
@@ -102,17 +100,23 @@ void MultiaryIngester::_doInputErrorChecking(const QString newInput, const QStri
       "When ingesting OGR formats the " + ConfigOptions::getOgrReaderNodeIdFieldNameKey() +
       " configuration option must be set in order to identify the ID field.");
   }
+
+  if (translationScript.trimmed().isEmpty())
+  {
+    throw IllegalArgumentException("A translation script must be defined.");
+  }
 }
 
-void MultiaryIngester::ingest(const QString newInput, const QString referenceOutput,
-                              const QString changesetOutput, const bool sortInput)
+void MultiaryIngester::ingest(const QString newInput, const QString translationScript,
+                              const QString referenceOutput, const QString changesetOutput)
 {
   LOG_INFO("Ingesting Multiary data from " << newInput << "...");
 
-  _sortInput = sortInput;
-
   //do some input error checking before kicking off a potentially lengthy sort process
-  _doInputErrorChecking(newInput, referenceOutput, changesetOutput);
+  _doInputErrorChecking(newInput, translationScript, referenceOutput, changesetOutput);
+
+  //script for translating input to OSM
+  conf().set(ConfigOptions::getTranslationScriptKey(), translationScript);
 
   const QStringList dbUrlParts = referenceOutput.split("/");
   const QString mapName = dbUrlParts[dbUrlParts.size() - 1];
@@ -122,9 +126,8 @@ void MultiaryIngester::ingest(const QString newInput, const QString referenceOut
   if (!referenceDb.mapExists(mapName))
   {
     LOG_INFO("The reference output dataset does not exist.");
-    LOG_INFO("Skipping POI sorting and changeset derivation.");
-    LOG_INFO("Writing the input data directly to the reference layer");
-    LOG_INFO("and generating a changeset file consisting entirely of create statements...");
+    LOG_INFO("Writing the input data directly to the reference layer.");
+    LOG_INFO("Generating a changeset file consisting entirely of create statements.");
 
     //If there's no existing reference data, then there's no point in deriving a changeset diff
     //or sorting the data by ID.  So in that case, write all of the input data directly to the ref
@@ -134,24 +137,15 @@ void MultiaryIngester::ingest(const QString newInput, const QString referenceOut
   else
   {
     LOG_INFO("The reference output dataset exists.");
-    LOG_INFO("Deriving a changeset between the input and reference data,");
-    LOG_INFO("writing the changes to the reference layer,");
-    LOG_INFO("and writing the changes to the changeset file...");
+    LOG_INFO("Deriving the changes between the input and reference data.");
+    LOG_INFO("Writing the changes to the reference layer and a changeset file.");
 
     //assuming no duplicate map names here
     referenceDb.setMapId(referenceDb.getMapIdByName(mapName));
 
-    QString sortedNewInput;
-    if (!_sortInput)
-    {
-      LOG_INFO("The input data will not be sorted by POI ID.");
-      sortedNewInput = newInput;
-    }
-    else
-    {
-      _sortInputFile(newInput);
-      sortedNewInput = _sortTempFile->fileName();
-    }
+    //decided to always sort the input
+    _sortInputFile(newInput);
+    QString sortedNewInput = _sortTempFile->fileName();
 
     //create the changes and write them to the ref db layer and also to a changeset file for
     //external use by Spark
@@ -174,13 +168,16 @@ void MultiaryIngester::_sortInputFile(const QString input)
     QFileInfo newInputFileInfo(input);
       _sortTempFile.reset(
         new QTemporaryFile(
-          QDir::tempPath() + "/" + sortTempFileBaseName + "." + newInputFileInfo.completeSuffix()));
+          ConfigOptions().getApidbBulkInserterTempFileDir() + "/" + sortTempFileBaseName + "." +
+          newInputFileInfo.completeSuffix()));
   }
   else
   {
     //OGR formats have to be converted to PBF before sorting
     _sortTempFile.reset(
-      new QTemporaryFile(QDir::tempPath() + "/" + sortTempFileBaseName + ".osm.pbf"));
+      new QTemporaryFile(
+        ConfigOptions().getApidbBulkInserterTempFileDir() + "/" + sortTempFileBaseName +
+        ".osm.pbf"));
   }
   //for debugging only
   //sortTempFile->setAutoRemove(false);
@@ -269,7 +266,7 @@ void MultiaryIngester::_writeNewReferenceData(
     }
   }
 
-  LOG_INFO("Flushing data...");
+  LOG_DEBUG("Flushing data...");
   referenceWriter->finalizePartial();
   changesetFileWriter->close();
 
@@ -317,7 +314,9 @@ boost::shared_ptr<QTemporaryFile> MultiaryIngester::_deriveAndWriteChangesToChan
   //a second changeset with the payload in xml; this spark changeset writer will write the
   //element payload as xml for db writing
   boost::shared_ptr<QTemporaryFile> tmpChangeset(
-    new QTemporaryFile(QDir::tempPath() + "/multiary-ingest-changeset-temp-XXXXXX.spark.1"));
+    new QTemporaryFile(
+      ConfigOptions().getApidbBulkInserterTempFileDir() +
+      "/multiary-ingest-changeset-temp-XXXXXX.spark.1"));
   //for debugging only
   //tmpChangeset->setAutoRemove(false);
   if (!tmpChangeset->open())

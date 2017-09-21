@@ -104,7 +104,20 @@ public:
    */
   bool changesetExists(const long id);
 
+  /**
+   * Closes an existing changeset
+   */
   void endChangeset();
+
+  /**
+   * Inserts and closes a changeset
+   *
+   * @param bounds bounds to associate with the changeset
+   * @param tags tags to associate with the changeset
+   * @param numChanges the number of changes in the changeset
+   * @return the ID of the inserted changeset
+   */
+  long insertChangeset(const geos::geom::Envelope& bounds, const Tags& tags, const long numChanges);
 
   /**
    * Creates necessary indexes and constraints on all maps that don't have indexes/constraints
@@ -307,25 +320,11 @@ public:
   long getMapIdByName(const QString name);
 
   /**
-   * @see ApiDb::disableConstraints
+   * Removes the layer name from a Hooteanny API database URL
+   *
+   * @param url input URL
+   * @return a URL with the layer name removed
    */
-  virtual void disableConstraints();
-
-  /**
-   * @see ApiDb::enableConstraints
-   */
-  virtual void enableConstraints();
-
-  /**
-   * @see ApiDb::dropIndexes
-   */
-  virtual void dropIndexes();
-
-  /**
-   * @see ApiDb::createIndexes
-   */
-  virtual void createIndexes();
-
   static QString removeLayerName(const QString url);
 
 protected:
@@ -354,6 +353,7 @@ private:
   boost::shared_ptr<QSqlQuery> _jobStatusExists;
   boost::shared_ptr<QSqlQuery> _mapExistsByName;
   boost::shared_ptr<QSqlQuery> _getMapIdByName;
+  boost::shared_ptr<QSqlQuery> _insertChangeSet2;
 
   boost::shared_ptr<BulkInsert> _nodeBulkInsert;
   long _nodesPerBulkInsert;
@@ -454,9 +454,6 @@ private:
    * @return should be <dbname>_renderdb_<map_id>
    */
   QString _getRenderDBName(long mapId);
-
-  QStringList _getTables();
-  void _modifyConstraints(const QStringList tableNames, const bool disable);
 
   static QString _escapeTags(const Tags& tags);
 };

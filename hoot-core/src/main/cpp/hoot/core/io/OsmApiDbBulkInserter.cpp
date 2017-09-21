@@ -201,10 +201,6 @@ void OsmApiDbBulkInserter::close()
   _closeOutputFiles();
   if (_destinationIsDatabase())
   {
-//    if (_database.getDB().isOpen())
-//    {
-//      _database.commit();
-//    }
     _database.close();
   }
 
@@ -412,8 +408,8 @@ void OsmApiDbBulkInserter::finalizePartial()
 bool OsmApiDbBulkInserter::_destinationIsDatabase() const
 {
   return
-    _outputUrl.toLower().startsWith("osmapidb://") ||
-    _outputUrl.toLower().startsWith("hootapidb://");
+    _outputUrl.toLower().startsWith("osmapidb://");// ||
+    //_outputUrl.toLower().startsWith("hootapidb://");
 }
 
 void OsmApiDbBulkInserter::_writeDataToDbPsql()
@@ -559,6 +555,7 @@ void OsmApiDbBulkInserter::_writeCombinedSqlFile()
         const bool updateIdOffsets = _destinationIsDatabase() && _reserveRecordIdsBeforeWritingData;
         do
         {
+          //these element lines won't contain tags
           QString line;
           line.reserve(75);
           line.append(QString::fromUtf8(tempInputFile.readLine().constData()));
@@ -575,7 +572,7 @@ void OsmApiDbBulkInserter::_writeCombinedSqlFile()
             recordCtr++;
           }
 
-          _sqlOutputCombinedFile->write(QString(line).toUtf8());
+          _sqlOutputCombinedFile->write(line.toUtf8());
 
           if (recordCtr > 0 && (recordCtr % (_statusUpdateInterval * 100) == 0))
           {
@@ -1105,14 +1102,8 @@ void OsmApiDbBulkInserter::_writeTags(const Tags& tags,
 
   for (Tags::const_iterator it = tags.begin(); it != tags.end(); ++it)
   {
-    //pre-allocating the string memory here reduces memory fragmentation significantly when parsing
-    //larger datasets due to the varying string sizes
-    QString key;
-    key.reserve(10);
-    key.append(it.key());
-    QString value;
-    value.reserve(50);
-    value.append(it.value().trimmed());
+    QString key = it.key();
+    QString value = it.value().trimmed();
     if (!value.isEmpty())
     {
       const QStringList tagSqlStrs = _sqlFormatter->tagToSqlStrings(dbId, elementType, key, value);
@@ -1296,7 +1287,7 @@ void OsmApiDbBulkInserter::_createOutputFile(const QString tableName, const QStr
   LOG_DEBUG(msg);
 
   _outputSections[tableName].reset(
-    new QTemporaryFile(_tempDir + "/OsmApiDbBulkInserter-" + tableName + "-temp-XXXXXX.sql"));
+    new QTemporaryFile(_tempDir + "/ApiDbBulkInserter-" + tableName + "-temp-XXXXXX.sql"));
   if (!_outputSections[tableName]->open())
   {
     throw HootException(
@@ -1393,7 +1384,7 @@ void OsmApiDbBulkInserter::_writeSequenceUpdates(long changesetId, const unsigne
 {
   LOG_DEBUG("Writing sequence updates stream...");
 
-  if (changesetId <= 0) //TODO: probably can get rid of this
+  if (changesetId <= 0) //probably can get rid of this
   {
     changesetId = 1;
   }
