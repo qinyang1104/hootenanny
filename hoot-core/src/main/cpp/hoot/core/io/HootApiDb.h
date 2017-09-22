@@ -459,8 +459,6 @@ private:
    * @return should be <dbname>_renderdb_<map_id>
    */
   QString _getRenderDBName(long mapId);
-
-  static QString _escapeTags(const Tags& tags);
 };
 
 }

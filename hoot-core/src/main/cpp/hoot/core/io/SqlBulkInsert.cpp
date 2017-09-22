@@ -42,133 +42,108 @@
 namespace hoot
 {
 
-QString SqlBulkInsert::TRUE_STR = "TRUE";
-QString SqlBulkInsert::FALSE_STR = "FALSE";
-
-SqlBulkInsert::SqlBulkInsert(QSqlDatabase& db, const QString &tableName,
-  const QStringList &columns) :
-    _db(db),
-    _tableName(tableName),
-    _columns(columns)
+SqlBulkInsert::SqlBulkInsert(QSqlDatabase& db, const QString tableName, const QStringList columns) :
+_db(db),
+_tableName(tableName),
+_columns(columns),
+_time(0),
+_pendingCount(0)
 {
-  _time = 0;
+  QString sql ="INSERT INTO " + _tableName + "(" + _columns.join(", ")  + ") VALUES (";
+  for (int i = 0; i < _columns.size(); i++)
+  {
+    sql += "?, ";
+  }
+  sql.chop(2);
+  sql += ")";
+  LOG_VART(sql);
+  _query.reset(new QSqlQuery(_db));
+  if (!_query->prepare(sql))
+  {
+    LOG_ERROR("Unable to prepare query: " << sql);
+  }
+  LOG_VART(_query->executedQuery());
 }
 
 SqlBulkInsert::~SqlBulkInsert()
 {
   LOG_DEBUG("(" << _tableName << ") Total time inserting: " << _time);
-  if (_pending.size() > 0)
+  if (_pendingCount > 0)
   {
-    LOG_WARN("(" << _tableName << ") There are pending inserts in SqlBulkInsert. You should call "
-             "flush before destruction.");
+    LOG_WARN(
+      "(" << _tableName << ") There are " << _pendingCount << " pending inserts in " <<
+      "SqlBulkInsert. You should call flush before destruction.");
   }
+  _pending.clear();
+  _pendingCount = 0;
 }
 
-inline QString SqlBulkInsert::_escape(const QVariant& v)
+void SqlBulkInsert::_initValsList()
 {
-  switch (v.type())
+  for (int i = 0; i < _columns.size(); i++)
   {
-  case QVariant::Int:
-  case QVariant::UInt:
-  case QVariant::Double:
-  case QVariant::LongLong:
-  case QVariant::ULongLong:
-    {
-      return v.toString();
-    }
-  case QVariant::String:
-    {
-      QString result = v.toString();
-      //check tags string return from HootApiDb::_escapeTags(tags)
-      if (!result.contains("hstore(ARRAY", Qt::CaseInsensitive) && result != QLatin1String("''"))
-      {
-         result.replace("'", "''");
-         result = "'" % result % "'";
-      }
-      return result;
-    }
-  case QVariant::Bool:
-    {
-      return v.toBool() ? TRUE_STR : FALSE_STR;
-    }
-  default:
-    throw UnsupportedException();
+    _pending.append(QVariantList());
   }
 }
 
 void SqlBulkInsert::flush()
 {
-  LOG_TRACE("Flushing bulk insert...");
-  LOG_VART(_pending.size());
+  LOG_TRACE("Flushing bulk insert for " << _tableName << "...");
+  LOG_VART(_pendingCount);
 
-  if (_pending.size() > 0)
+  assert(_pending.size() > 0);
+  if (_pendingCount > 0)
   {
     double start = Tgs::Time::getTime();
-    QString sql;
-    // the value 22 was found experimentally
-    sql.reserve(_pending.size() * _columns.size() * 22);
-    sql.append(QLatin1Literal("INSERT INTO ") %
-        _tableName %
-        QLatin1Literal(" (") %
-        _columns.join(",") %
-        QLatin1Literal(") VALUES "));
-
-    QLatin1String firstOpenParen("("), openParen(",("), closeParen(")"), comma(",");
 
     for (int i = 0; i < _pending.size(); i++)
     {
-      if (i == 0)
-      {
-        sql.append(firstOpenParen);
-      }
-      else
-      {
-        sql.append(openParen);
-      }
-
-      for (int j = 0; j < _columns.size(); j++)
-      {
-        if (j == 0)
-        {
-          sql.append(_escape(_pending[i][j]));
-        }
-        else
-        {
-          sql.append(comma % _escape(_pending[i][j]));
-        }
-      }
-
-      sql.append(closeParen);
+      LOG_VART(i);
+      LOG_VART(_pending.at(i));
+      assert(_pending.at(i).size() == _pendingCount);
+      //LOG_VART(_pending.at(i).size());
+      _query->addBindValue(_pending.at(i));
     }
+    LOG_TRACE(_query->lastQuery());
 
-    LOG_VART(sql);
-    QSqlQuery q(_db);
-    if (q.exec(sql) == false)
+    if (_query->execBatch() == false)
     {
-      LOG_ERROR(q.executedQuery().left(500));
-      LOG_ERROR(q.lastError().text().left(500));
+      _pending.clear();
+      _pendingCount = 0;
+      LOG_ERROR(_query->executedQuery().left(500));
+      LOG_ERROR(_query->lastError().text().left(500));
       throw HootException(
         QString("Error executing bulk insert: %1 (%2)")
-        .arg(q.lastError().text().left(500)).arg(sql).left(500));
+        .arg(_query->lastError().text().left(500)).arg(_query->executedQuery()).left(500));
     }
-
-    q.finish();
+    _query->finish();
 
     _pending.clear();
+    _pendingCount = 0;
     double elapsed = Tgs::Time::getTime() - start;
     _time += elapsed;
   }
 }
 
-void SqlBulkInsert::insert(const QList<QVariant> l)
+void SqlBulkInsert::insert(const QVariantList& vals)
 {
-  if (l.size() != _columns.size())
+  if (vals.size() != _columns.size())
   {
-    LOG_VAR(l);
+    LOG_VAR(vals);
     LOG_VAR(_columns);
-    throw IllegalArgumentException("Expected l to have the same size as _columns.");
+    throw IllegalArgumentException("Expected vals to have the same size as _columns.");
   }
-  _pending.append(l);
+  //The vals come in as a complete set for one record, and the batch exec wants to see a separate
+  //list for each val type
+  if (_pending.size() == 0)
+  {
+    _initValsList();
+  }
+  for (int i = 0; i < vals.size(); i++)
+  {
+    _pending[i].append(vals.at(i));
+  }
+  _pendingCount++;
 }
 
 }

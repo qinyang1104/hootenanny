@@ -101,13 +101,13 @@ void HootApiDbWriter::_countChange()
 
 void HootApiDbWriter::finalizePartial()
 {
-  LOG_DEBUG("Finalizing write operation...");
   if (_open)
   {
+    _open = false;
+    LOG_DEBUG("Finalizing write operation...");
     _hootdb.endChangeset();
     _hootdb.commit();
     _hootdb.close();
-    _open = false;
   }
 }
 

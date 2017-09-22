@@ -110,7 +110,7 @@ void SqlBulkUpdate::flush()
       LOG_ERROR(_query->executedQuery().left(500));
       LOG_ERROR(_query->lastError().text().left(500));
       throw HootException(
-        QString("Error executing bulk insert: %1 (%2)")
+        QString("Error executing bulk update: %1 (%2)")
         .arg(_query->lastError().text().left(500)).arg(_query->executedQuery()).left(500));
     }
     _query->finish();
@@ -123,7 +123,7 @@ void SqlBulkUpdate::flush()
   }
 }
 
-void SqlBulkUpdate::update(const long id, const QVariantList vals)
+void SqlBulkUpdate::update(const long id, const QVariantList& vals)
 {
   LOG_VART(_columns.size());
   LOG_VART(vals.size());

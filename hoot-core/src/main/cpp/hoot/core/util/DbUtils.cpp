@@ -27,14 +27,15 @@
 
 #include "DbUtils.h"
 
+// Hoot
+#include <hoot/core/util/HootException.h>
+#include <hoot/core/util/Log.h>
+
 // Qt
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QStringList>
-
-// Hoot
-#include <hoot/core/util/HootException.h>
-#include <hoot/core/util/Log.h>
+#include <QStringBuilder>
 
 namespace hoot
 {
@@ -46,8 +47,10 @@ QSqlQuery DbUtils::execNoPrepare(QSqlDatabase& database, const QString sql)
   LOG_VART(sql);
   if (q.exec(sql) == false)
   {
-    throw HootException(
-      QString("Error executing query: %1 (%2)").arg(q.lastError().text().left(500)).arg(sql));
+    const QString errorMsg =
+      QString("Error executing query: %1 (%2)").arg(q.lastError().text().left(500)).arg(sql);
+    LOG_ERROR(errorMsg);
+    throw HootException(errorMsg);
   }
   LOG_VART(q.numRowsAffected());
 
@@ -186,6 +189,74 @@ QString DbUtils::getPostgresDbVersion(const QSqlDatabase& database)
   query.finish();
 
   return version;
+}
+
+QString DbUtils::tagsToHstoreString(const Tags& tags)
+{
+  QString tagsStr;
+  for (Tags::const_iterator it = tags.begin(); it != tags.end(); ++it)
+  {
+    QString key = it.key().trimmed();
+    QString value = it.value().trimmed();
+    if (!value.isEmpty())
+    {
+      key.replace("'", "\'");
+      key.replace("=>", "\\=\\>");
+      key.replace("\"", "\\\"");
+      tagsStr.append("\"" % key % "\"");
+
+      tagsStr.append("=>");
+
+      value.replace("'", "\'");
+      value.replace("=>", "\\=\\>");
+      value.replace("\"", "\\\"");
+      tagsStr.append("\"" % value % "\"");
+
+      tagsStr.append(",");
+    }
+  }
+  if (tagsStr.endsWith(","))
+  {
+    tagsStr.chop(1);
+  }
+  assert(tagsStr != "''");
+  return tagsStr;
+}
+
+QString DbUtils::tagsToHstoreArrayString(const Tags& tags)
+{
+  //TODO: this is likely redundant with other code
+
+  QStringList l;
+  static QChar f1('\\'), f2('"');
+
+  for (Tags::const_iterator it = tags.begin(); it != tags.end(); ++it)
+  {
+    QString key = it.key();
+    QString val = it.value().trimmed();
+    if (val.isEmpty() == false)
+    {
+      // this doesn't appear to be working, but I think it is implementing the spec as described here:
+      // http://www.postgresql.org/docs/9.0/static/hstore.html
+      // The spec described above does seem to work on the psql command line. Curious.
+      QString k = QString(key).replace(f1, "\\\\").replace(f2, "\\\"").replace("'", "''");
+      QString v = QString(val).replace(f1, "\\\\").replace(f2, "\\\"").replace("'", "''");
+
+      l << QString("'%1'").arg(k);
+      l << QString("'%1'").arg(v);
+    }
+  }
+
+  QString hstoreStr = l.join(",");
+  if (!hstoreStr.isEmpty())
+  {
+     hstoreStr = "hstore(ARRAY[" + hstoreStr + "])";
+  }
+  else
+  {
+     hstoreStr = "''";
+  }
+  return hstoreStr;
 }
 
 }

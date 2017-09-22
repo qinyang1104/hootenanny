@@ -45,29 +45,27 @@ class SqlBulkInsert : public BulkInsert
 {
 public:
 
-  static QString TRUE_STR;
-  static QString FALSE_STR;
-
-  SqlBulkInsert(QSqlDatabase& db, const QString& tableName, const QStringList& columns);
+  SqlBulkInsert(QSqlDatabase& db, const QString tableName, const QStringList columns);
 
   virtual ~SqlBulkInsert();
 
   virtual void flush();
 
-  virtual int getPendingCount() const { return _pending.size(); }
+  virtual int getPendingCount() const { return _pendingCount; }
 
-  virtual void insert(const QList<QVariant> l);
+  virtual void insert(const QVariantList& vals);
 
 private:
 
-  QList< QList<QVariant> > _pending;
-  QSqlQuery _query;
+  QList<QVariantList> _pending;
+  boost::shared_ptr<QSqlQuery> _query;
   QSqlDatabase _db;
   QString _tableName;
   QStringList _columns;
   double _time;
+  int _pendingCount;
 
-  inline QString _escape(const QVariant& v);
+  void _initValsList();
 };
 
 }

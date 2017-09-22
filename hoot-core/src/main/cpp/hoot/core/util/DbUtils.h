@@ -28,6 +28,9 @@
 #ifndef DBUTILS_H
 #define DBUTILS_H
 
+// Hoot
+#include <hoot/core/elements/Tags.h>
+
 // Qt
 #include <QString>
 #include <QtSql/QSqlDatabase>
@@ -85,6 +88,22 @@ public:
    * @return a database version string
    */
   static QString getPostgresDbVersion(const QSqlDatabase& database);
+
+  /**
+   * Converts element tags to an HSTORE string
+   *
+   * @param tags tags to convert
+   * @return an hstore string
+   */
+  static QString tagsToHstoreString(const Tags& tags);
+
+  /**
+   * Converts element tags to an HSTORE array string
+   *
+   * @param tags tags to convert
+   * @return an hstore string
+   */
+  static QString tagsToHstoreArrayString(const Tags& tags);
 
 private:
 

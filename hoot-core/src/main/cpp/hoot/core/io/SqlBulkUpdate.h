@@ -55,7 +55,7 @@ public:
 
   virtual int getPendingCount() const { return _pendingIds.size(); }
 
-  virtual void update(const long id, const QVariantList vals);
+  virtual void update(const long id, const QVariantList& vals);
 
 private:
 

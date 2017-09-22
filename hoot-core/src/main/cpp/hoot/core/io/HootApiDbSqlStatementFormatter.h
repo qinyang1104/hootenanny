@@ -77,8 +77,6 @@ public:
   QString elementToSqlString(const ConstElementPtr& element, const long elementId,
                                   const long changesetId);
 
-  static QString toTagsString(const Tags& tags);
-
   inline static QString getNodeSqlHeaderString(const long mapId)
   {
     return "COPY " + HootApiDb::getCurrentNodesTableName(mapId) +
