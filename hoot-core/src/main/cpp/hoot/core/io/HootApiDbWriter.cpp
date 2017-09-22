@@ -103,11 +103,11 @@ void HootApiDbWriter::finalizePartial()
 {
   if (_open)
   {
-    _open = false;
     LOG_DEBUG("Finalizing write operation...");
     _hootdb.endChangeset();
     _hootdb.commit();
     _hootdb.close();
+    _open = false;
   }
 }
 

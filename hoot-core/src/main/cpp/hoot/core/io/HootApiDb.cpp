@@ -160,10 +160,10 @@ void HootApiDb::close()
 {
   LOG_DEBUG("Closing database connection...");
 
+  createPendingMapIndexes();
   _flushBulkInserts();
   _flushBulkUpdates();
   _flushBulkDeletes();
-  createPendingMapIndexes();
 
   _resetQueries();
 
@@ -193,10 +193,10 @@ void HootApiDb::commit()
                         QString("need to set hootapi.db.writer.create.user=true."));
   }
 
+  createPendingMapIndexes();
   _flushBulkInserts();
   _flushBulkUpdates();
   _flushBulkDeletes();
-  createPendingMapIndexes();
   _resetQueries();
   if (!_db.commit())
   {
@@ -767,10 +767,7 @@ bool HootApiDb::insertNode(const long id, const double lat, const double lon, co
 
   _nodesInsertElapsed += Tgs::Time::getTime() - start;
 
-  if (_nodeBulkInsert->getPendingCount() >= _nodesPerBulkInsert)
-  {
-    _nodeBulkInsert->flush();
-  }
+  _lazyFlushBulkInsert();
 
   ConstNodePtr envelopeNode(new Node(Status::Unknown1, id, lon, lat, 0.0));
   _updateChangesetEnvelope(envelopeNode);
@@ -1043,10 +1040,10 @@ void HootApiDb::_lazyFlushBulkInsert()
   {
     flush = true;
   }
-  if (_wayNodeBulkInsert && _wayNodeBulkInsert->getPendingCount() > _wayNodesPerBulkInsert)
-  {
-    flush = true;
-  }
+//  if (_wayNodeBulkInsert && _wayNodeBulkInsert->getPendingCount() > _wayNodesPerBulkInsert)
+//  {
+//    flush = true;
+//  }
   if (_wayBulkInsert && _wayBulkInsert->getPendingCount() > _waysPerBulkInsert)
   {
     flush = true;
@@ -1491,8 +1488,6 @@ void HootApiDb::insertWayNodes(long wayId, const vector<long>& nodeIds)
   double start = Tgs::Time::getTime();
 
   LOG_TRACE("Inserting nodes into way " << QString::number(wayId));
-
-  _nodeBulkInsert->flush();
 
   _checkLastMapId(mapId);
 
