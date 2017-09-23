@@ -29,7 +29,6 @@
 
 // Qt
 #include <QSqlQuery>
-#include <QStringList>
 
 #include "BulkDelete.h"
 
@@ -45,7 +44,7 @@ class SqlBulkDelete : public BulkDelete
 {
 public:
 
-  SqlBulkDelete(QSqlDatabase& db, const QString tableName);
+  SqlBulkDelete(QSqlDatabase& db, const QString tableName, const int _batchSize);
 
   virtual ~SqlBulkDelete();
 
@@ -57,11 +56,13 @@ public:
 
 private:
 
-  QStringList _pending;
-  QSqlQuery _query;
+  QVariantList _pending;
+  boost::shared_ptr<QSqlQuery> _query;
   QSqlDatabase _db;
   QString _tableName;
   double _time;
+  int _pendingCount;
+  int _batchSize;
 };
 
 }

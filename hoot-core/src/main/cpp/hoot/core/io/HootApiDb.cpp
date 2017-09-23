@@ -865,7 +865,8 @@ void HootApiDb::deleteNode(ConstNodePtr node)
 
   if (_nodeBulkDelete == 0)
   {
-    _nodeBulkDelete.reset(new SqlBulkDelete(_db, getCurrentNodesTableName(mapId)));
+    _nodeBulkDelete.reset(
+      new SqlBulkDelete(_db, getCurrentNodesTableName(mapId), _nodesPerBulkDelete));
   }
   _nodeBulkDelete->deleteElement(node->getId());
 

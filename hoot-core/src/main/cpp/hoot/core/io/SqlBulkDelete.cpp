@@ -41,52 +41,74 @@
 namespace hoot
 {
 
-SqlBulkDelete::SqlBulkDelete(QSqlDatabase& db, const QString tableName) :
+SqlBulkDelete::SqlBulkDelete(QSqlDatabase& db, const QString tableName, const int batchSize) :
 _db(db),
-_tableName(tableName)
+_tableName(tableName),
+_time(0),
+_pendingCount(0),
+_batchSize(batchSize)
 {
-  _time = 0;
+  QString sql = "DELETE FROM " + _tableName + " WHERE ID in (?)";
+//  for (int i = 0; i < _batchSize; i++)
+//  {
+//    sql += "?, ";
+//  }
+//  sql.chop(2);
+//  sql += ")";
+  LOG_VART(sql);
+  _query.reset(new QSqlQuery(_db));
+  if (!_query->prepare(sql))
+  {
+    LOG_ERROR("Unable to prepare query: " << sql);
+  }
+  LOG_VART(_query->executedQuery());
 }
 
 SqlBulkDelete::~SqlBulkDelete()
 {
   LOG_DEBUG("(" << _tableName << ") Total time deleting: " << _time);
-  if (_pending.size() > 0)
+  if (_pendingCount > 0)
   {
-    LOG_WARN("(" << _tableName << ") There are pending deletes in SqlBulkDelete. You should call "
-             "flush before destruction.");
+    LOG_WARN("(" << _tableName << ") There are " << _pendingCount << " pending deletes in " <<
+      "SqlBulkDelete. You should call flush before destruction.");
   }
+  if (_query)
+  {
+    _query->finish();
+    _query->clear();
+  }
+  _pending.clear();
+  _pendingCount = 0;
 }
 
 void SqlBulkDelete::flush()
 {
   LOG_TRACE("Flushing bulk delete...");
   LOG_VART(_pending.size());
+  LOG_VART(_pendingCount);
 
-  if (_pending.size() > 0)
+  if (_pendingCount > 0)
   {
+    assert(_pending.size() > 0);
+    assert(_pendingCount == _pending.size());
     double start = Tgs::Time::getTime();
 
-    QString sql;
-    sql.reserve(_pending.size());
-    sql.append(QLatin1Literal("DELETE FROM ") %
-        _tableName %
-        QLatin1Literal(" WHERE id IN (") %
-        _pending.join(",") %
-        QLatin1Literal(")"));
-    LOG_VART(sql);
+    _query->addBindValue(_pending);
+    LOG_TRACE(_query->lastQuery());
 
-    QSqlQuery q(_db);
-    if (q.exec(sql) == false)
+    if (_query->execBatch() == false)
     {
-      LOG_ERROR(q.executedQuery());
-      LOG_ERROR(q.lastError().text());
-      throw HootException(QString("Error executing bulk delete: %1 (%2)").arg(q.lastError().text()).
-                          arg(sql.left(500)));
+      _pending.clear();
+      LOG_ERROR(_query->executedQuery().left(500));
+      LOG_ERROR(_query->lastError().text().left(500));
+      throw HootException(
+        QString("Error executing bulk insert: %1 (%2)")
+        .arg(_query->lastError().text().left(500)).arg(_query->executedQuery()).left(500));
     }
-    q.finish();
-
+    LOG_VART(_query->numRowsAffected());
     _pending.clear();
+    _pendingCount = 0;
+
     double elapsed = Tgs::Time::getTime() - start;
     _time += elapsed;
   }
@@ -95,6 +117,7 @@ void SqlBulkDelete::flush()
 void SqlBulkDelete::deleteElement(const long id)
 {
   _pending.append(QString::number(id));
+  _pendingCount++;
 }
 
 }
