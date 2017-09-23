@@ -73,6 +73,11 @@ SqlBulkUpdate::~SqlBulkUpdate()
     LOG_WARN("(" << _tableName << ") There are pending updates in SqlBulkUpdate. You should call "
              "flush before destruction.");
   }
+  if (_query)
+  {
+    _query->finish();
+    _query->clear();
+  }
   _query.reset();
 }
 
@@ -107,13 +112,14 @@ void SqlBulkUpdate::flush()
 
     if (_query->execBatch() == false)
     {
+      _pendingIds.clear();
+      _pendingVals.clear();
       LOG_ERROR(_query->executedQuery().left(500));
       LOG_ERROR(_query->lastError().text().left(500));
       throw HootException(
         QString("Error executing bulk update: %1 (%2)")
         .arg(_query->lastError().text().left(500)).arg(_query->executedQuery()).left(500));
     }
-    _query->finish();
 
     _pendingIds.clear();
     _pendingVals.clear();

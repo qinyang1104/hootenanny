@@ -49,7 +49,7 @@ _columns(columns),
 _time(0),
 _pendingCount(0)
 {
-  QString sql ="INSERT INTO " + _tableName + "(" + _columns.join(", ")  + ") VALUES (";
+  QString sql = "INSERT INTO " + _tableName + "(" + _columns.join(", ")  + ") VALUES (";
   for (int i = 0; i < _columns.size(); i++)
   {
     sql += "?, ";
