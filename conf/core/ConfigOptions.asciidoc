@@ -767,6 +767,16 @@ details.
 
 The size of a pixel when calculating node density. See User Manual for details.
 
+=== hootapi.db.writer.node.batch.inserter
+
+* Data Type: string
+* Default Value: `hoot::SqlBulkInsert`
+
+Implementation the Hooteannny API database writer uses for writing nodes.  The default is
+hoot::SqlBulkInsert, which works with all data.  hoot::SqlBulkInsert2 currently can be used for
+faster node inserts but does not work with way writing.  This setting is ignored if
+'hootapi.db.writer.copy.bulk.insert' is set to true.
+
 === hootapi.db.writer.create.user
 
 * Data Type: bool
@@ -775,7 +785,7 @@ The size of a pixel when calculating node density. See User Manual for details.
 Should the hootapi services DB writer automatically create the specified user if it doesn't exist.
 This is most useful when debugging and testing.
 
-=== hootapi.db.writer.fast.bulk.insert
+=== hootapi.db.writer.copy.bulk.insert
 
 * Data Type: bool
 * Default Value: `false`
@@ -783,7 +793,8 @@ This is most useful when debugging and testing.
 If set to true, the Hootenanny API database writer will insert new records using Postgres COPY
 statements, which may increase performance when writing large datasets.  This setting can only
 be activated when writing new records and will not work when existing records need to be modified
-or deleted.  It also requires writing out temporary files, so extra disk space is needed.
+or deleted.  It also requires writing data out temporary files, so extra disk space is needed when
+this setting is activated.
 
 === hootapi.db.writer.output.id.mappings
 

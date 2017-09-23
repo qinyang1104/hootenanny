@@ -231,7 +231,7 @@ void MultiaryIngester::_writeNewReferenceData(
   //the regular inserter.  Here, we're seeing a 15% write performance improvement.  This seems to be
   //b/c the reads are much slower than the writing.  So, we could maybe get better performance by
   //splitting the reading and writing into separate threads (?).
-  conf().set(ConfigOptions::getHootapiDbWriterFastBulkInsertKey(), true);
+  conf().set(ConfigOptions::getHootapiDbWriterCopyBulkInsertKey(), true);
   boost::shared_ptr<PartialOsmMapWriter> referenceWriter =
     boost::dynamic_pointer_cast<PartialOsmMapWriter>(
       OsmMapWriterFactory::getInstance().createWriter(referenceOutput));
@@ -376,7 +376,7 @@ boost::shared_ptr<QTemporaryFile> MultiaryIngester::_deriveAndWriteChangesToChan
     }
   }
 
-  LOG_INFO("Flushing data...");
+  LOG_DEBUG("Flushing data...");
   referenceReader->finalizePartial();
   changesetFileWriter->close();
   changesetDeriver.close();
@@ -409,7 +409,8 @@ void MultiaryIngester::_writeChangesToReferenceLayer(const QString changesetOutp
   //executed the inserts separately with the bulk inserter, we would still want the modifies/deletes
   //to run within the same transaction.  Having all of them in the same transaction isn't possible
   //here unless we use the HootApiDbWriter.
-  conf().set(ConfigOptions::getHootapiDbWriterFastBulkInsertKey(), false);
+  conf().set(ConfigOptions::getHootapiDbWriterCopyBulkInsertKey(), false);
+  conf().set(ConfigOptions::getHootapiDbWriterNodeBatchInserterKey(), "hoot::SqlBulkInsert2");
   boost::shared_ptr<PartialOsmMapWriter> referenceWriter =
     boost::dynamic_pointer_cast<PartialOsmMapWriter>(
       OsmMapWriterFactory::getInstance().createWriter(referenceOutput));

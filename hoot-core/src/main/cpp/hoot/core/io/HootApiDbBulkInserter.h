@@ -72,7 +72,7 @@ public:
   void setCreateUser(bool createIfNotFound) { _createUserIfNotFound = createIfNotFound; }
   void setUserEmail(QString email) { _userEmail = email; }
   void setOverwriteMap(bool overwriteMap) { _overwriteMap = overwriteMap; }
-  void setFastBulkInsertActivated(bool activated) { _fastBulkInsertActivated = activated; }
+  void setCopyBulkInsertActivated(bool activated) { _copyBulkInsertActivated = activated; }
 
 protected:
 
@@ -114,7 +114,7 @@ private:
   HootApiDb _database;
   boost::shared_ptr<HootApiDbSqlStatementFormatter> _sqlFormatter;
 
-  bool _fastBulkInsertActivated;
+  bool _copyBulkInsertActivated;
 
   Tags _changesetTags;
 

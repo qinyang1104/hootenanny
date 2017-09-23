@@ -24,14 +24,15 @@
  *
  * @copyright Copyright (C) 2016, 2017 DigitalGlobe (http://www.digitalglobe.com/)
  */
-#ifndef SQLBULKINSERT_H
-#define SQLBULKINSERT_H
+#ifndef SQLBULKINSERT2_H
+#define SQLBULKINSERT2_H
+
+// Hoot
+#include <hoot/core/io/BulkInsert.h>
 
 // Qt
 #include <QSqlQuery>
 #include <QStringList>
-
-#include "BulkInsert.h"
 
 class QSqlDatabase;
 
@@ -40,36 +41,40 @@ namespace hoot
 
 /**
  * This is designed for combining multiple insert SQL operations into a single insert SQL statement.
+ * It works with node only datasets.  This may be fixed by #?.
+ *
+ * The main difference between this class and SqlBulkInsert is that this classes uses a prepared
+ * query that is executed with QSqlQuery::execBatch.  For node writing, this has shown large
+ * performance improvements when compared to writing with SqlBulkInsert.  However, when writing ways
+ * with this class, way node constraint violations occur complaining that certain nodes do not exist.
  */
-class SqlBulkInsert : public BulkInsert
+class SqlBulkInsert2 : public BulkInsert
 {
 public:
 
-  SqlBulkInsert(QSqlDatabase& db, const QString tableName, const QStringList columns);
+  SqlBulkInsert2(QSqlDatabase& db, const QString tableName, const QStringList columns);
 
-  virtual ~SqlBulkInsert();
+  virtual ~SqlBulkInsert2();
 
   virtual void flush();
 
-  virtual int getPendingCount() const { return _pending.size(); }
-
-  virtual QString getTableName() const { return _tableName; }
+  virtual int getPendingCount() const { return _pendingCount; }
 
   virtual void insert(const QVariantList& vals);
 
 private:
 
-  QList< QList<QVariant> > _pending;
-  QSqlQuery _query;
+  QList<QVariantList> _pending;
+  boost::shared_ptr<QSqlQuery> _query;
   QSqlDatabase _db;
   QString _tableName;
   QStringList _columns;
   double _time;
-  QString _true, _false;
+  int _pendingCount;
 
-  inline QString _escape(const QVariant& v) const;
+  void _initValsList();
 };
 
 }
 
-#endif // SQLBULKINSERT_H
+#endif // SQLBULKINSERT2_H
