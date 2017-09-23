@@ -226,11 +226,12 @@ void MultiaryIngester::_writeNewReferenceData(
 
   conf().set(ConfigOptions::getHootapiDbWriterCreateUserKey(), true);
   conf().set(ConfigOptions::getHootapiDbWriterOverwriteMapKey(), true);
-  //We're able to use the faster bulk inserter here, since this is a brand new dataset.  For raw
-  //writes, there was as much as a 70% performance increase seen when using the bulk inserter vs
-  //the regular inserter.  Here, we're seeing a 15% write performance improvement.  This seems to be
-  //b/c the reads are much slower than the writing.  So, we could maybe get better performance by
-  //splitting the reading and writing into separate threads (?).
+  //We're able to use the faster bulk copy inserter here, since this is a brand new dataset.  In
+  //general for raw writes, there is as much as a 70% performance increase when using the bulk copy
+  //inserter vs the regular inserter.  However, for this workflow we're seeing a ~15% write
+  //performance improvement.  This seems to be b/c the reads are much slower than the writing, due
+  //to the POI filtering and translation.  So, we could maybe get better performance by splitting the
+  //reading and writing into separate threads (?).
   conf().set(ConfigOptions::getHootapiDbWriterCopyBulkInsertKey(), true);
   boost::shared_ptr<PartialOsmMapWriter> referenceWriter =
     boost::dynamic_pointer_cast<PartialOsmMapWriter>(
@@ -405,12 +406,11 @@ void MultiaryIngester::_writeChangesToReferenceLayer(const QString changesetOutp
   //already has the macro for OsmMapWriter, it can't be added for OsmChangeWriter as well.
   conf().set(ConfigOptions::getHootapiDbWriterCreateUserKey(), false);
   conf().set(ConfigOptions::getHootapiDbWriterOverwriteMapKey(), false);
-  //The bulk inserter won't work here, b/c we're writing more than just inserts, and even if we
+  //The bulk copy inserter won't work here, b/c we're writing more than just inserts, and even if we
   //executed the inserts separately with the bulk inserter, we would still want the modifies/deletes
   //to run within the same transaction.  Having all of them in the same transaction isn't possible
   //here unless we use the HootApiDbWriter.
   conf().set(ConfigOptions::getHootapiDbWriterCopyBulkInsertKey(), false);
-  conf().set(ConfigOptions::getHootapiDbWriterNodeBatchInserterKey(), "hoot::SqlBulkInsert2");
   boost::shared_ptr<PartialOsmMapWriter> referenceWriter =
     boost::dynamic_pointer_cast<PartialOsmMapWriter>(
       OsmMapWriterFactory::getInstance().createWriter(referenceOutput));

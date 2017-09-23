@@ -767,16 +767,6 @@ details.
 
 The size of a pixel when calculating node density. See User Manual for details.
 
-=== hootapi.db.writer.node.batch.inserter
-
-* Data Type: string
-* Default Value: `hoot::SqlBulkInsert`
-
-Implementation the Hooteannny API database writer uses for writing nodes.  The default is
-hoot::SqlBulkInsert, which works with all data.  hoot::SqlBulkInsert2 currently can be used for
-faster node inserts but does not work with way writing.  This setting is ignored if
-'hootapi.db.writer.copy.bulk.insert' is set to true.
-
 === hootapi.db.writer.create.user
 
 * Data Type: bool

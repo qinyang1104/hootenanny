@@ -396,8 +396,6 @@ private:
 
   int _precision;
 
-  QString _nodeInsertImplementation;
-
   /**
    * There are some statements that cannot be executed within a transaction
    * (like DROP DATABASE). There are times (when deleting a map) where we

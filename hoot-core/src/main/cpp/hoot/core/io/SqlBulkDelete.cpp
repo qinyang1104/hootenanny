@@ -48,13 +48,7 @@ _time(0),
 _pendingCount(0),
 _batchSize(batchSize)
 {
-  QString sql = "DELETE FROM " + _tableName + " WHERE ID in (?)";
-//  for (int i = 0; i < _batchSize; i++)
-//  {
-//    sql += "?, ";
-//  }
-//  sql.chop(2);
-//  sql += ")";
+  const QString sql = "DELETE FROM " + _tableName + " WHERE ID in (?)";
   LOG_VART(sql);
   _query.reset(new QSqlQuery(_db));
   if (!_query->prepare(sql))

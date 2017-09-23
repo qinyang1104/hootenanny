@@ -65,8 +65,7 @@ namespace hoot
 unsigned int HootApiDb::logWarnCount = 0;
 
 HootApiDb::HootApiDb() :
-_precision(ConfigOptions().getWriterPrecision()),
-_nodeInsertImplementation(ConfigOptions().getHootapiDbWriterNodeBatchInserter())
+_precision(ConfigOptions().getWriterPrecision())
 {
   _init();
 }
@@ -750,15 +749,7 @@ bool HootApiDb::insertNode(const long id, const double lat, const double lon, co
                "tile" << "version" << "tags";
     //since this is meant to be a temporary setting and only has two options, didn't bother with
     //creating a factory for this
-    if (_nodeInsertImplementation == QLatin1String("hoot::SqlBulkInsert"))
-    {
-      _nodeBulkInsert.reset(new SqlBulkInsert(_db, getCurrentNodesTableName(mapId), columns));
-    }
-    else
-    {
-      //see #?
-      _nodeBulkInsert.reset(new SqlBulkInsert2(_db, getCurrentNodesTableName(mapId), columns));
-    }
+    _nodeBulkInsert.reset(new SqlBulkInsert2(_db, getCurrentNodesTableName(mapId), columns));
   }
 
   QList<QVariant> v;
@@ -772,21 +763,13 @@ bool HootApiDb::insertNode(const long id, const double lat, const double lon, co
   // escaping tags ensures that we won't introduce a SQL injection vulnerability, however, if a
   // bad tag is passed and it isn't escaped properly (shouldn't happen) it may result in a syntax
   // error.
-  if (_nodeInsertImplementation == QLatin1String("hoot::SqlBulkInsert"))
+  if (tags.size() > 0)
   {
-    v.append(DbUtils::tagsToHstoreArrayString(tags));
+    v.append(DbUtils::tagsToHstoreString(tags));
   }
   else
   {
-    //see #?
-    if (tags.size() > 0)
-    {
-      v.append(DbUtils::tagsToHstoreString(tags));
-    }
-    else
-    {
-      v.append(QVariant(QVariant::String));
-    }
+    v.append(QVariant(QVariant::String));
   }
 
   _nodeBulkInsert->insert(v);
@@ -903,7 +886,7 @@ bool HootApiDb::insertRelation(const long relationId, const Tags &tags)
     QStringList columns;
     columns << "id" << "changeset_id" << "timestamp" << "version" << "tags";
 
-    _relationBulkInsert.reset(new SqlBulkInsert(_db, getCurrentRelationsTableName(mapId), columns));
+    _relationBulkInsert.reset(new SqlBulkInsert2(_db, getCurrentRelationsTableName(mapId), columns));
   }
 
   QList<QVariant> v;
@@ -914,7 +897,14 @@ bool HootApiDb::insertRelation(const long relationId, const Tags &tags)
   // escaping tags ensures that we won't introduce a SQL injection vulnerability, however, if a
   // bad tag is passed and it isn't escaped properly (shouldn't happen) it may result in a syntax
   // error.
-  v.append(DbUtils::tagsToHstoreArrayString(tags));
+  if (tags.size() > 0)
+  {
+    v.append(DbUtils::tagsToHstoreString(tags));
+  }
+  else
+  {
+    v.append(QVariant(QVariant::String));
+  }
 
   _relationBulkInsert->insert(v);
 
@@ -1482,7 +1472,7 @@ bool HootApiDb::insertWay(const long wayId, const Tags &tags)
     QStringList columns;
     columns << "id" << "changeset_id" << "timestamp" << "version" << "tags";
 
-    _wayBulkInsert.reset(new SqlBulkInsert(_db, getCurrentWaysTableName(mapId), columns));
+    _wayBulkInsert.reset(new SqlBulkInsert2(_db, getCurrentWaysTableName(mapId), columns));
   }
 
   QList<QVariant> v;
@@ -1493,7 +1483,14 @@ bool HootApiDb::insertWay(const long wayId, const Tags &tags)
   // escaping tags ensures that we won't introduce a SQL injection vulnerability, however, if a
   // bad tag is passed and it isn't escaped properly (shouldn't happen) it may result in a syntax
   // error.
-  v.append(DbUtils::tagsToHstoreArrayString(tags));
+  if (tags.size() > 0)
+  {
+    v.append(DbUtils::tagsToHstoreString(tags));
+  }
+  else
+  {
+    v.append(QVariant(QVariant::String));
+  }
 
   _wayBulkInsert->insert(v);
 
@@ -1523,7 +1520,7 @@ void HootApiDb::insertWayNodes(long wayId, const vector<long>& nodeIds)
     QStringList columns;
     columns << "way_id" << "node_id" << "sequence_id";
 
-    _wayNodeBulkInsert.reset(new SqlBulkInsert(_db, getCurrentWayNodesTableName(mapId), columns));
+    _wayNodeBulkInsert.reset(new SqlBulkInsert2(_db, getCurrentWayNodesTableName(mapId), columns));
   }
 
   QList<QVariant> v;
