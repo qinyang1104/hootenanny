@@ -225,8 +225,6 @@ QString DbUtils::tagsToHstoreString(const Tags& tags)
 
 QString DbUtils::tagsToHstoreArrayString(const Tags& tags)
 {
-  //TODO: this is likely redundant with other code
-
   QStringList l;
   static QChar f1('\\'), f2('"');
 

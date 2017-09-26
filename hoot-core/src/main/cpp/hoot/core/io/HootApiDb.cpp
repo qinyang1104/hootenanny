@@ -756,7 +756,7 @@ bool HootApiDb::insertNode(const long id, const double lat, const double lon, co
     }
     else
     {
-      //see #?
+      //see #1823
       _nodeBulkInsert.reset(new SqlBulkInsert2(_db, getCurrentNodesTableName(mapId), columns));
     }
   }
@@ -778,7 +778,7 @@ bool HootApiDb::insertNode(const long id, const double lat, const double lon, co
   }
   else
   {
-    //see #?
+    //see #1823
     if (tags.size() > 0)
     {
       v.append(DbUtils::tagsToHstoreString(tags));

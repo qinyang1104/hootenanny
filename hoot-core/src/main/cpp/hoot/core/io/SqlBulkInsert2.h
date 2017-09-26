@@ -41,12 +41,14 @@ namespace hoot
 
 /**
  * This is designed for combining multiple insert SQL operations into a single insert SQL statement.
- * It works with node only datasets.  This may be fixed by #?.
+ * It works with node only datasets.  This may be fixed by #1823.
  *
  * The main difference between this class and SqlBulkInsert is that this classes uses a prepared
- * query that is executed with QSqlQuery::execBatch.  For node writing, this has shown large
- * performance improvements when compared to writing with SqlBulkInsert.  However, when writing ways
- * with this class, way node constraint violations occur complaining that certain nodes do not exist.
+ * query that is executed with QSqlQuery::execBatch.  For node writing, this has shown performance
+ * improvements when compared to writing with SqlBulkInsert.  However, when writing ways with this
+ * class in addition to nodes, way node constraint violations occur complaining that certain nodes
+ * do not exist.  Therefore, this class is currently only accessed from node writing only workflows,
+ * like Multiary Conflation.
  */
 class SqlBulkInsert2 : public BulkInsert
 {
