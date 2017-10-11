@@ -33,7 +33,9 @@
 namespace hoot
 {
 
-static const int MAX_KEY_LEN = 100;
+//this can be raised periodically, as needed
+//TODO: move it to a config?
+static const int MAX_KEY_LEN = 200;
 
 class FixedLengthString
 {

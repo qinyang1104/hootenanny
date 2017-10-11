@@ -63,7 +63,8 @@ _statusUpdateInterval(ConfigOptions().getApidbBulkInserterFileOutputStatusUpdate
 _highestRuleWordCount(0),
 _highestRuleTagCount(0)
 {
-  Tgs::DisableCout d;
+  //Tgs::DisableCout d;
+  //std::setlocale(LC_ALL, "en_US.utf8");
   setenv("STXXLLOGFILE", "/dev/null", 0);
   setenv("STXXLERRLOGFILE", "/dev/null", 0);
 }
@@ -335,38 +336,6 @@ void PoiImplicitTagRulesDeriver::_removeKvpsBelowOccuranceThreshold(const int mi
     "occurrance count fell below the minimum occurrance threshold of " << minOccurancesThreshold);
 }
 
-FixedLengthString PoiImplicitTagRulesDeriver::_toFixedLengthWordKvp(const QString wordKvp)
-{
-  FixedLengthString fixedLengthWordKvp;
-  //std::setlocale(LC_ALL, "en_US.utf8");
-  memset(fixedLengthWordKvp.data, 0, sizeof fixedLengthWordKvp.data);
-  std::wcstombs(fixedLengthWordKvp.data, wordKvp.toStdWString().c_str(), MAX_KEY_LEN);
-  return fixedLengthWordKvp;
-}
-
-QString PoiImplicitTagRulesDeriver::_fixedLengthStrToQStr(const FixedLengthString& fixedLengthStr)
-{
-  wchar_t wKey[MAX_KEY_LEN];
-  std::mbstowcs(wKey, fixedLengthStr.data, MAX_KEY_LEN);
-  return QString::fromWCharArray(wKey);
-}
-
-QMap<QString, long> PoiImplicitTagRulesDeriver::_stxxlMapToQtMap(
-  const FixedLengthStringToLongMap& stxxlMap)
-{
-  QMap<QString, long> qtMap;
-  for (FixedLengthStringToLongMap::const_iterator mapItr = stxxlMap.begin();
-       mapItr != stxxlMap.end(); ++mapItr)
-  {
-    const QString key = _fixedLengthStrToQStr(mapItr->first);
-    LOG_VART(key);
-    const long value = mapItr->second;
-    LOG_VART(value);
-    qtMap[key] = value;
-  }
-  return qtMap;
-}
-
 void PoiImplicitTagRulesDeriver::_removeIrrelevantKeyTypes(const QStringList typeKeysAllowed)
 {
   if (typeKeysAllowed.size() == 0)
@@ -376,20 +345,24 @@ void PoiImplicitTagRulesDeriver::_removeIrrelevantKeyTypes(const QStringList typ
 
   LOG_DEBUG("Removing irrelevant tags...");
 
-  QMap<QString, long> updatedCounts; //*
+  Tgs::DisableCout d;
+  FixedLengthStringToLongMap updatedCounts(stxxlMapNodeSize, stxxlMapLeafSize);
   QMap<QString, QStringList> updatedValues; //*
 
   long irrelevantKvpRemovalCount = 0;
   for (QMap<QString, long>::const_iterator kvpCountsItr = _wordKvpsToOccuranceCounts.begin();
        kvpCountsItr != _wordKvpsToOccuranceCounts.end(); ++kvpCountsItr)
   {
+    const QString wordKvp = kvpCountsItr.key();
     const QStringList keyParts = kvpCountsItr.key().split(";");
     const QString word = keyParts[0];
     const QString key = keyParts[1].split("=")[0];
 
     if (typeKeysAllowed.contains(key.toLower()))
     {
-      updatedCounts[kvpCountsItr.key()] = kvpCountsItr.value();
+      FixedLengthString fixedLengthWordKvp = _toFixedLengthWordKvp(wordKvp);
+      LOG_VART(fixedLengthWordKvp.data);
+      updatedCounts[fixedLengthWordKvp] = kvpCountsItr.value();
       const QString wordKvpKey = word % ";" % key;
       updatedValues[wordKvpKey] = _wordTagKeysToTagValues[wordKvpKey];
     }
@@ -399,7 +372,7 @@ void PoiImplicitTagRulesDeriver::_removeIrrelevantKeyTypes(const QStringList typ
     }
   }
 
-  _wordKvpsToOccuranceCounts = updatedCounts;
+  _wordKvpsToOccuranceCounts = _stxxlMapToQtMap(updatedCounts);
   _wordTagKeysToTagValues = updatedValues;
 
   LOG_DEBUG(
@@ -500,6 +473,7 @@ void PoiImplicitTagRulesDeriver::_generateTagRulesByWord()
        kvpsWithCountsItr != _wordKvpsToOccuranceCounts.end(); ++kvpsWithCountsItr)
   {
     const QString wordKvp = kvpsWithCountsItr.key();
+    LOG_VART(wordKvp);
     const QStringList wordKvpParts = wordKvp.split(";");
     QString word = wordKvpParts[0];
     if (word.contains("="))
@@ -666,6 +640,38 @@ void PoiImplicitTagRulesDeriver::_unescapeRuleWords()
     }
     rule->setWords(modifiedRuleWords);
   }
+}
+
+FixedLengthString PoiImplicitTagRulesDeriver::_toFixedLengthWordKvp(const QString wordKvp)
+{
+  FixedLengthString fixedLengthWordKvp;
+  memset(fixedLengthWordKvp.data, 0, sizeof fixedLengthWordKvp.data);
+  std::wcstombs(fixedLengthWordKvp.data, wordKvp.toStdWString().c_str(), MAX_KEY_LEN);
+  return fixedLengthWordKvp;
+}
+
+QString PoiImplicitTagRulesDeriver::_fixedLengthStrToQStr(const FixedLengthString& fixedLengthStr)
+{
+  wchar_t wKey[MAX_KEY_LEN];
+  std::mbstowcs(wKey, fixedLengthStr.data, MAX_KEY_LEN);
+  return QString::fromWCharArray(wKey);
+}
+
+QMap<QString, long> PoiImplicitTagRulesDeriver::_stxxlMapToQtMap(
+  const FixedLengthStringToLongMap& stxxlMap)
+{
+  LOG_DEBUG("Converting stxxl map to qt map...");
+  QMap<QString, long> qtMap;
+  for (FixedLengthStringToLongMap::const_iterator mapItr = stxxlMap.begin();
+       mapItr != stxxlMap.end(); ++mapItr)
+  {
+    const QString key = _fixedLengthStrToQStr(mapItr->first);
+    LOG_VART(key);
+    const long value = mapItr->second;
+    LOG_VART(value);
+    qtMap[key] = value;
+  }
+  return qtMap;
 }
 
 }
