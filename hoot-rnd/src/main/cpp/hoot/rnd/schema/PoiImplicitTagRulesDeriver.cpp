@@ -337,6 +337,15 @@ void PoiImplicitTagRulesDeriver::_removeKvpsBelowOccuranceThreshold(const int mi
 
 FixedLengthString PoiImplicitTagRulesDeriver::_toFixedLengthWordKvp(const QString wordKvp)
 {
+  //TODO: this check isn't catching what I expect it to
+  if (wordKvp.size() > MAX_KEY_LEN)
+  //if (wordKvp.toStdWString().size() > MAX_KEY_LEN)
+  {
+    throw HootException(
+      "Input string is bigger than fixed string max length: " + QString::number(MAX_KEY_LEN) +
+      ".  Consider raising the value of MAX_KEY_LEN.");
+  }
+
   FixedLengthString fixedLengthWordKvp;
   //std::setlocale(LC_ALL, "en_US.utf8");
   memset(fixedLengthWordKvp.data, 0, sizeof fixedLengthWordKvp.data);
@@ -415,7 +424,8 @@ void PoiImplicitTagRulesDeriver::_removeDuplicatedKeyTypes()
 {
   LOG_DEBUG("Removing duplicated tag types...");
 
-  QMap<QString, long> updatedCounts; //*
+  Tgs::DisableCout d;
+  FixedLengthStringToLongMap updatedCounts(stxxlMapNodeSize, stxxlMapLeafSize);
   QMap<QString, QStringList> updatedValues; //*
 
   long duplicatedKeyTypeRemovalCount = 0;
@@ -432,7 +442,7 @@ void PoiImplicitTagRulesDeriver::_removeDuplicatedKeyTypes()
     {
       LOG_TRACE(vals.size() << " values mapped to wordKvpKey: " << wordKvpKey);
 
-      QString highestOccurranceKvp;
+      QString highestOccurranceWordKvp;
       long highestOccurranceCount = 0;
 
       for (int i = 0; i < vals.size(); i++)
@@ -445,20 +455,22 @@ void PoiImplicitTagRulesDeriver::_removeDuplicatedKeyTypes()
         {
           highestOccurranceCount = occurranceCount;
           LOG_VART(highestOccurranceCount);
-          highestOccurranceKvp = wordKvp;
-          LOG_VART(highestOccurranceKvp);
+          highestOccurranceWordKvp = wordKvp;
+          LOG_VART(highestOccurranceWordKvp);
         }
       }
 
       if (highestOccurranceCount > 0)
       {
-        if (!highestOccurranceKvp.contains(";"))
+        if (!highestOccurranceWordKvp.contains(";"))
         {
-          LOG_VARE(highestOccurranceKvp);
+          LOG_VARE(highestOccurranceWordKvp);
         }
-        updatedCounts[highestOccurranceKvp] = highestOccurranceCount;
-        LOG_VART(updatedCounts[highestOccurranceKvp]);
-        const QString highestOccurranceVal = highestOccurranceKvp.split("=")[1];
+        FixedLengthString fixedLengthHighestOccurranceWordKvp =
+          _toFixedLengthWordKvp(highestOccurranceWordKvp);
+        updatedCounts[fixedLengthHighestOccurranceWordKvp] = highestOccurranceCount;
+        LOG_VART(updatedCounts[fixedLengthHighestOccurranceWordKvp]);
+        const QString highestOccurranceVal = highestOccurranceWordKvp.split("=")[1];
         if (!updatedValues.contains(wordKvpKey))
         {
           updatedValues[wordKvpKey] = QStringList();
@@ -479,14 +491,15 @@ void PoiImplicitTagRulesDeriver::_removeDuplicatedKeyTypes()
       {
         LOG_VARE(wordKvp);
       }
-      updatedCounts[wordKvp] = _wordKvpsToOccuranceCounts[wordKvp];
-      LOG_VART(updatedCounts[wordKvp]);
+      FixedLengthString fixedLengthWordKvp = _toFixedLengthWordKvp(wordKvp);
+      updatedCounts[fixedLengthWordKvp] = _wordKvpsToOccuranceCounts[wordKvp];
+      LOG_VART(updatedCounts[fixedLengthWordKvp]);
       updatedValues[wordKvpKey] = _wordTagKeysToTagValues[wordKvpKey];
       LOG_VART(updatedValues[wordKvpKey]);
     }
   }
 
-  _wordKvpsToOccuranceCounts = updatedCounts;
+  _wordKvpsToOccuranceCounts = _stxxlMapToQtMap(updatedCounts);
   _wordTagKeysToTagValues= updatedValues;
 
   LOG_DEBUG(
@@ -504,6 +517,7 @@ void PoiImplicitTagRulesDeriver::_generateTagRulesByWord()
        kvpsWithCountsItr != _wordKvpsToOccuranceCounts.end(); ++kvpsWithCountsItr)
   {
     const QString wordKvp = kvpsWithCountsItr.key();
+    LOG_VART(wordKvp);
     const QStringList wordKvpParts = wordKvp.split(";");
     QString word = wordKvpParts[0];
     if (word.contains("="))
