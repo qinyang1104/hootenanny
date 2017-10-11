@@ -24,54 +24,25 @@
  *
  * @copyright Copyright (C) 2017 DigitalGlobe (http://www.digitalglobe.com/)
  */
-#ifndef IMPLICITTAGRULE_H
-#define IMPLICITTAGRULE_H
+#include "FixedLengthString.h"
 
-// Hoot
-#include <hoot/core/elements/Tags.h>
-
-// Qt
-#include <QSet>
 
 namespace hoot
 {
 
-/**
- * A rule that can be applied to add tags to a feature derived implicitly from the feature's name
- */
-class ImplicitTagRule
+bool FixedLengthString::operator<(const FixedLengthString& str) const
 {
-public:
-
-  ImplicitTagRule();
-
-  /**
-   * Returns all words associated with this rule
-   *
-   * @return a collection of words
-   */
-  QSet<QString>& getWords() { return _words; }
-  void setWords(const QSet<QString>& words) { _words = words; }
-
-  /**
-   * Returns all tags associated with this rule
-   *
-   * @return a collection of tags
-   */
-  Tags& getTags() { return _tags; }
-  void setTags(const Tags& tags) { _tags = tags; }
-
-private:
-
-  QSet<QString> _words;
-  Tags _tags;
-};
-
-typedef boost::shared_ptr<ImplicitTagRule> ImplicitTagRulePtr;
-typedef QList<ImplicitTagRulePtr> ImplicitTagRules; //*
-//key=<word>, value=<key=kvp, value=kvp occurrance count>>
-typedef QMap<QString, QMap<QString, long> > ImplicitTagRulesByWord; //*
-
+  return std::lexicographical_compare(data, data + MAX_KEY_LEN, str.data, str.data + MAX_KEY_LEN);
 }
 
-#endif // IMPLICITTAGRULE_H
+bool FixedLengthString::operator==(const FixedLengthString& str) const
+{
+  return std::equal(data, data + MAX_KEY_LEN, str.data);
+}
+
+bool FixedLengthString::operator!=(const FixedLengthString& str) const
+{
+  return !std::equal(data, data + MAX_KEY_LEN, str.data);
+}
+
+}

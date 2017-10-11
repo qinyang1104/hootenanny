@@ -38,11 +38,23 @@
 #include <hoot/core/io/ElementVisitorInputStream.h>
 #include <hoot/core/visitors/TranslationVisitor.h>
 
+// Tgs
+#include <tgs/System/DisableCout.h>
+
 // Qt
 #include <QStringBuilder>
 
+// std
+#include <cstdlib>
+//#include <clocale>
+
 namespace hoot
 {
+
+long PoiImplicitTagRulesDeriver::stxxlMapNodeSize =
+  FixedLengthStringToLongMap::node_block_type::raw_size * 5;
+long PoiImplicitTagRulesDeriver::stxxlMapLeafSize =
+  FixedLengthStringToLongMap::node_block_type::raw_size * 5;
 
 PoiImplicitTagRulesDeriver::PoiImplicitTagRulesDeriver() :
 _avgTagsPerRule(0),
@@ -51,6 +63,9 @@ _statusUpdateInterval(ConfigOptions().getApidbBulkInserterFileOutputStatusUpdate
 _highestRuleWordCount(0),
 _highestRuleTagCount(0)
 {
+  Tgs::DisableCout d;
+  setenv("STXXLLOGFILE", "/dev/null", 0);
+  setenv("STXXLERRLOGFILE", "/dev/null", 0);
 }
 
 QStringList PoiImplicitTagRulesDeriver::_getPoiKvps(const Tags& tags) const
@@ -268,10 +283,8 @@ void PoiImplicitTagRulesDeriver::_removeKvpsBelowOccuranceThreshold(const int mi
 
   LOG_DEBUG("Removing tags below mininum occurance threshold: " << minOccurancesThreshold << "...");
 
-  QMap<QString, long> updatedCounts; //*
-  //Tgs::BigMap<QString, long> updatedCounts;
-//  fixed_name_map myFixedMap(
-//    (fixed_name_map::node_block_type::raw_size)*5, (fixed_name_map::leaf_block_type::raw_size)*5);
+  Tgs::DisableCout d;
+  FixedLengthStringToLongMap updatedCounts(stxxlMapNodeSize, stxxlMapLeafSize);
   QMap<QString, QStringList> updatedValues; //*
 
   long kvpRemovalCount = 0;
@@ -282,19 +295,25 @@ void PoiImplicitTagRulesDeriver::_removeKvpsBelowOccuranceThreshold(const int mi
     LOG_VART(count);
     if (count >= minOccurancesThreshold)
     {
-      const QStringList keyParts = kvpCountsItr.key().split(";");
+      const QString wordKvp = kvpCountsItr.key();
+      LOG_VART(wordKvp);
+      const QStringList keyParts = wordKvp.split(";");
       const QString word = keyParts[0];
+      //LOG_VART(word);
       const QString kvp = keyParts[1];
+      //LOG_VART(kvp);
       const QStringList kvpParts = kvp.split("=");
       const QString kvpKey = kvpParts[0];
       const QString kvpVal = kvpParts[1];
       const QString wordKvpKey = word % ";" % kvpKey;
 
-      if (!kvpCountsItr.key().contains(";"))
+      if (!wordKvp.contains(";"))
       {
-        LOG_VARE(kvpCountsItr.key());
+        LOG_VARE(wordKvp);
       }
-      updatedCounts[kvpCountsItr.key()] = count;
+      FixedLengthString fixedLengthWordKvp = _toFixedLengthWordKvp(wordKvp);
+      LOG_VART(fixedLengthWordKvp.data);
+      updatedCounts[fixedLengthWordKvp] = count;
       if (!updatedValues.contains(wordKvpKey))
       {
         updatedValues[wordKvpKey] = QStringList();
@@ -308,12 +327,44 @@ void PoiImplicitTagRulesDeriver::_removeKvpsBelowOccuranceThreshold(const int mi
     }
   }
 
-  _wordKvpsToOccuranceCounts = updatedCounts;
+  _wordKvpsToOccuranceCounts = _stxxlMapToQtMap(updatedCounts);
   _wordTagKeysToTagValues = updatedValues;
 
   LOG_DEBUG(
-    "Removed " << StringUtils::formatLargeNumber(kvpRemovalCount) << " tags that " <<
-    "fell below the minimum occurrance threshold of " << minOccurancesThreshold);
+    "Removed " << StringUtils::formatLargeNumber(kvpRemovalCount) << " tags whose " <<
+    "occurrance count fell below the minimum occurrance threshold of " << minOccurancesThreshold);
+}
+
+FixedLengthString PoiImplicitTagRulesDeriver::_toFixedLengthWordKvp(const QString wordKvp)
+{
+  FixedLengthString fixedLengthWordKvp;
+  //std::setlocale(LC_ALL, "en_US.utf8");
+  memset(fixedLengthWordKvp.data, 0, sizeof fixedLengthWordKvp.data);
+  std::wcstombs(fixedLengthWordKvp.data, wordKvp.toStdWString().c_str(), MAX_KEY_LEN);
+  return fixedLengthWordKvp;
+}
+
+QString PoiImplicitTagRulesDeriver::_fixedLengthStrToQStr(const FixedLengthString& fixedLengthStr)
+{
+  wchar_t wKey[MAX_KEY_LEN];
+  std::mbstowcs(wKey, fixedLengthStr.data, MAX_KEY_LEN);
+  return QString::fromWCharArray(wKey);
+}
+
+QMap<QString, long> PoiImplicitTagRulesDeriver::_stxxlMapToQtMap(
+  const FixedLengthStringToLongMap& stxxlMap)
+{
+  QMap<QString, long> qtMap;
+  for (FixedLengthStringToLongMap::const_iterator mapItr = stxxlMap.begin();
+       mapItr != stxxlMap.end(); ++mapItr)
+  {
+    const QString key = _fixedLengthStrToQStr(mapItr->first);
+    LOG_VART(key);
+    const long value = mapItr->second;
+    LOG_VART(value);
+    qtMap[key] = value;
+  }
+  return qtMap;
 }
 
 void PoiImplicitTagRulesDeriver::_removeIrrelevantKeyTypes(const QStringList typeKeysAllowed)

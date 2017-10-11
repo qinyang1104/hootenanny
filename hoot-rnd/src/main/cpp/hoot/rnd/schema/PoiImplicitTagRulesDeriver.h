@@ -29,9 +29,7 @@
 
 // Hoot
 #include <hoot/rnd/schema/ImplicitTagRule.h>
-
-// Tgs
-#include <tgs/BigContainers/BigMap.h>
+#include <hoot/rnd/util/FixedLengthString.h>
 
 // Qt
 #include <QString>
@@ -50,10 +48,13 @@ class PoiImplicitTagRulesDeriver
 
 public:
 
+  static long stxxlMapNodeSize;
+  static long stxxlMapLeafSize;
+
   PoiImplicitTagRulesDeriver();
 
   /**
-   * Derives implicit tag rules for POIs given input data and writes the rules to output
+   * Derives implicit tag rules for POIs given input name data and writes the rules to output
    *
    * @param inputs a list of hoot supported feature input formats to derive rules from
    * @param translationScripts list of OSM translation scripts corresponding to the datasets
@@ -77,6 +78,7 @@ private:
   //TODO: replace with stxxl map
   //key=<word>;<kvp>, value=<kvp occurance count>
   QMap<QString, long> _wordKvpsToOccuranceCounts; //*
+  //boost::shared_ptr<FixedStringToLongMap> _wordKvpsToOccuranceCounts;
   //key=<word>;<tag key>, value=<tag values>
   QMap<QString, QStringList> _wordTagKeysToTagValues;
   //key=<lower case word>, value=<word>
@@ -102,6 +104,10 @@ private:
   Tags _kvpsToTags(const QSet<QString>& kvps);
   QString _kvpsToString(const QSet<QString>& kvps);
   void _unescapeRuleWords();
+  //temp
+  QMap<QString, long> _stxxlMapToQtMap(const FixedLengthStringToLongMap& stxxlMap);
+  FixedLengthString _toFixedLengthWordKvp(const QString wordKvp);
+  QString _fixedLengthStrToQStr(const FixedLengthString& fixedLengthStr);
 };
 
 }

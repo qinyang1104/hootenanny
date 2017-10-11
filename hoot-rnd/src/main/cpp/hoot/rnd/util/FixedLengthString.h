@@ -24,54 +24,40 @@
  *
  * @copyright Copyright (C) 2017 DigitalGlobe (http://www.digitalglobe.com/)
  */
-#ifndef IMPLICITTAGRULE_H
-#define IMPLICITTAGRULE_H
+#ifndef FIXEDLENGTHSTRING_H
+#define FIXEDLENGTHSTRING_H
 
-// Hoot
-#include <hoot/core/elements/Tags.h>
-
-// Qt
-#include <QSet>
+// STXXL
+#include <stxxl/map>
 
 namespace hoot
 {
 
-/**
- * A rule that can be applied to add tags to a feature derived implicitly from the feature's name
- */
-class ImplicitTagRule
+static const int MAX_KEY_LEN = 100;
+
+class FixedLengthString
 {
 public:
 
-  ImplicitTagRule();
+  char data[MAX_KEY_LEN];
 
-  /**
-   * Returns all words associated with this rule
-   *
-   * @return a collection of words
-   */
-  QSet<QString>& getWords() { return _words; }
-  void setWords(const QSet<QString>& words) { _words = words; }
-
-  /**
-   * Returns all tags associated with this rule
-   *
-   * @return a collection of tags
-   */
-  Tags& getTags() { return _tags; }
-  void setTags(const Tags& tags) { _tags = tags; }
-
-private:
-
-  QSet<QString> _words;
-  Tags _tags;
+  bool operator<(const FixedLengthString& str) const;
+  bool operator==(const FixedLengthString& str) const;
+  bool operator!=(const FixedLengthString& str) const;
 };
 
-typedef boost::shared_ptr<ImplicitTagRule> ImplicitTagRulePtr;
-typedef QList<ImplicitTagRulePtr> ImplicitTagRules; //*
-//key=<word>, value=<key=kvp, value=kvp occurrance count>>
-typedef QMap<QString, QMap<QString, long> > ImplicitTagRulesByWord; //*
+struct FixedLengthStringCompare : public std::less<FixedLengthString>
+{
+  static FixedLengthString max_value()
+  {
+    FixedLengthString s;
+    std::fill(s.data, s.data + MAX_KEY_LEN, 0x7f);
+    return s;
+  }
+};
+
+typedef stxxl::map<FixedLengthString, long, FixedLengthStringCompare, 4096, 4096> FixedLengthStringToLongMap;
 
 }
 
-#endif // IMPLICITTAGRULE_H
+#endif // FIXEDLENGTHSTRING_H
