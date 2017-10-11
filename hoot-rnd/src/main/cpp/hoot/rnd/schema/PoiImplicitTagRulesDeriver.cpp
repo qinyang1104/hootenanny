@@ -376,20 +376,24 @@ void PoiImplicitTagRulesDeriver::_removeIrrelevantKeyTypes(const QStringList typ
 
   LOG_DEBUG("Removing irrelevant tags...");
 
-  QMap<QString, long> updatedCounts; //*
+  Tgs::DisableCout d;
+  FixedLengthStringToLongMap updatedCounts(stxxlMapNodeSize, stxxlMapLeafSize);
   QMap<QString, QStringList> updatedValues; //*
 
   long irrelevantKvpRemovalCount = 0;
   for (QMap<QString, long>::const_iterator kvpCountsItr = _wordKvpsToOccuranceCounts.begin();
        kvpCountsItr != _wordKvpsToOccuranceCounts.end(); ++kvpCountsItr)
   {
-    const QStringList keyParts = kvpCountsItr.key().split(";");
+    const QString wordKvp = kvpCountsItr.key();
+    const QStringList keyParts = wordKvp.split(";");
     const QString word = keyParts[0];
     const QString key = keyParts[1].split("=")[0];
 
     if (typeKeysAllowed.contains(key.toLower()))
     {
-      updatedCounts[kvpCountsItr.key()] = kvpCountsItr.value();
+      FixedLengthString fixedLengthWordKvp = _toFixedLengthWordKvp(wordKvp);
+      LOG_VART(fixedLengthWordKvp.data);
+      updatedCounts[fixedLengthWordKvp] = kvpCountsItr.value();
       const QString wordKvpKey = word % ";" % key;
       updatedValues[wordKvpKey] = _wordTagKeysToTagValues[wordKvpKey];
     }
@@ -399,7 +403,7 @@ void PoiImplicitTagRulesDeriver::_removeIrrelevantKeyTypes(const QStringList typ
     }
   }
 
-  _wordKvpsToOccuranceCounts = updatedCounts;
+  _wordKvpsToOccuranceCounts = _stxxlMapToQtMap(updatedCounts);
   _wordTagKeysToTagValues = updatedValues;
 
   LOG_DEBUG(
