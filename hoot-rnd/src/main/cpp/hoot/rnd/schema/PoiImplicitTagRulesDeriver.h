@@ -80,7 +80,7 @@ private:
   //key=<word>;<tag key>, value=<tag values>
   QMap<QString, QStringList> _wordTagKeysToTagValues; //TODO: replace with stxxl map
   //key=<lower case word>, value=<word>
-  QMap<QString, QString> _wordCaseMappings; //* //TODO: replace with stxxl map
+  FixedLengthStringToFixedLengthStringMap _wordCaseMappings;
   //TODO
   //QStringList _wordsToIgnore;
   double _avgTagsPerRule;

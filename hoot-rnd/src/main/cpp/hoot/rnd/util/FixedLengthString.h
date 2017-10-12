@@ -59,6 +59,7 @@ struct FixedLengthStringCompare : public std::less<FixedLengthString>
 };
 
 typedef stxxl::map<FixedLengthString, long, FixedLengthStringCompare, 4096, 4096> FixedLengthStringToLongMap;
+typedef stxxl::map<FixedLengthString, FixedLengthString, FixedLengthStringCompare, 4096, 4096> FixedLengthStringToFixedLengthStringMap;
 
 }
 

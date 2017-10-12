@@ -58,6 +58,7 @@ long PoiImplicitTagRulesDeriver::stxxlMapLeafSize =
 
 PoiImplicitTagRulesDeriver::PoiImplicitTagRulesDeriver() :
 _wordKvpsToOccuranceCounts(stxxlMapNodeSize, stxxlMapLeafSize),
+_wordCaseMappings(stxxlMapNodeSize, stxxlMapLeafSize),
 _avgTagsPerRule(0),
 _avgWordsPerRule(0),
 _statusUpdateInterval(ConfigOptions().getApidbBulkInserterFileOutputStatusUpdateInterval()),
@@ -99,14 +100,16 @@ void PoiImplicitTagRulesDeriver::_updateForNewWord(QString word, const QString k
     word = word.replace("=", "%3D");
   }
 
+  FixedLengthString fixedLengthWord = _qStrToFixedLengthStr(word);
   const QString lowerCaseWord = word.toLower();
-  if (_wordCaseMappings.contains(lowerCaseWord))
+  FixedLengthString fixedLengthLowerCaseWord = _qStrToFixedLengthStr(lowerCaseWord);
+  if (_wordCaseMappings.find(fixedLengthLowerCaseWord) != _wordCaseMappings.end())
   {
-    word = _wordCaseMappings[lowerCaseWord];
+    word = _fixedLengthStrToQStr(_wordCaseMappings[fixedLengthLowerCaseWord]);
   }
   else
   {
-    _wordCaseMappings[lowerCaseWord] = word;
+    _wordCaseMappings[fixedLengthLowerCaseWord] = fixedLengthWord;
   }
 
   const QString wordKvp = word % ";" % kvp;
