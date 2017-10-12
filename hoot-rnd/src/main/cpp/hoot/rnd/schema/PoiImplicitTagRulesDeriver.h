@@ -75,14 +75,12 @@ private:
   //for testing
   friend class PoiImplicitTagRulesDeriverTest;
 
-  //TODO: replace with stxxl map
   //key=<word>;<kvp>, value=<kvp occurance count>
-  QMap<QString, long> _wordKvpsToOccuranceCounts; //*
-  //boost::shared_ptr<FixedStringToLongMap> _wordKvpsToOccuranceCounts;
+  FixedLengthStringToLongMap _wordKvpsToOccuranceCounts;
   //key=<word>;<tag key>, value=<tag values>
-  QMap<QString, QStringList> _wordTagKeysToTagValues;
+  QMap<QString, QStringList> _wordTagKeysToTagValues; //TODO: replace with stxxl map
   //key=<lower case word>, value=<word>
-  QMap<QString, QString> _wordCaseMappings; //*
+  QMap<QString, QString> _wordCaseMappings; //* //TODO: replace with stxxl map
   //TODO
   //QStringList _wordsToIgnore;
   double _avgTagsPerRule;
@@ -106,7 +104,7 @@ private:
   void _unescapeRuleWords();
   //temp
   QMap<QString, long> _stxxlMapToQtMap(const FixedLengthStringToLongMap& stxxlMap);
-  FixedLengthString _toFixedLengthWordKvp(const QString wordKvp);
+  FixedLengthString _qStrToFixedLengthStr(const QString wordKvp);
   QString _fixedLengthStrToQStr(const FixedLengthString& fixedLengthStr);
 };
 

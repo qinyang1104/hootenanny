@@ -32,6 +32,9 @@
 #include <hoot/rnd/io/ImplicitTagRulesJsonWriter.h>
 #include <hoot/rnd/io/ImplicitTagRulesSqliteWriter.h>
 
+// Tgs
+#include <tgs/System/DisableCout.h>
+
 namespace hoot
 {
 
@@ -72,6 +75,7 @@ public:
       }
     }
 
+    Tgs::DisableCout d;
     PoiImplicitTagRulesDeriver().deriveRules(
       args[0].trimmed().split(";"), args[1].trimmed().split(";"), args[2].trimmed().split(";"),
       types, minOccurancesThreshold);

@@ -57,6 +57,7 @@ long PoiImplicitTagRulesDeriver::stxxlMapLeafSize =
   FixedLengthStringToLongMap::node_block_type::raw_size * 5;
 
 PoiImplicitTagRulesDeriver::PoiImplicitTagRulesDeriver() :
+_wordKvpsToOccuranceCounts(stxxlMapNodeSize, stxxlMapLeafSize),
 _avgTagsPerRule(0),
 _avgWordsPerRule(0),
 _statusUpdateInterval(ConfigOptions().getApidbBulkInserterFileOutputStatusUpdateInterval()),
@@ -110,15 +111,16 @@ void PoiImplicitTagRulesDeriver::_updateForNewWord(QString word, const QString k
 
   const QString wordKvp = word % ";" % kvp;
   LOG_VART(wordKvp);
-  if (!_wordKvpsToOccuranceCounts.contains(wordKvp))
+  FixedLengthString fixedLengthWordKvp = _qStrToFixedLengthStr(wordKvp);
+  if (_wordKvpsToOccuranceCounts.find(fixedLengthWordKvp) == _wordKvpsToOccuranceCounts.end())
   {
-    _wordKvpsToOccuranceCounts[wordKvp] = 1;
+    _wordKvpsToOccuranceCounts[fixedLengthWordKvp] = 1;
   }
   else
   {
-    _wordKvpsToOccuranceCounts[wordKvp]++;
+    _wordKvpsToOccuranceCounts[fixedLengthWordKvp]++;
   }
-  LOG_VART( _wordKvpsToOccuranceCounts[wordKvp]);
+  LOG_VART(_wordKvpsToOccuranceCounts[fixedLengthWordKvp]);
 
   const QStringList kvpParts = kvp.split("=");
   const QString kvpKey = kvpParts[0];
@@ -289,14 +291,14 @@ void PoiImplicitTagRulesDeriver::_removeKvpsBelowOccuranceThreshold(const int mi
   QMap<QString, QStringList> updatedValues; //*
 
   long kvpRemovalCount = 0;
-  for (QMap<QString, long>::const_iterator kvpCountsItr = _wordKvpsToOccuranceCounts.begin();
+  for (FixedLengthStringToLongMap::const_iterator kvpCountsItr = _wordKvpsToOccuranceCounts.begin();
        kvpCountsItr != _wordKvpsToOccuranceCounts.end(); ++kvpCountsItr)
   {
-    const long count = kvpCountsItr.value();
+    const long count = kvpCountsItr->second;
     LOG_VART(count);
     if (count >= minOccurancesThreshold)
     {
-      const QString wordKvp = kvpCountsItr.key();
+      const QString wordKvp = _fixedLengthStrToQStr(kvpCountsItr->first);
       LOG_VART(wordKvp);
       const QStringList keyParts = wordKvp.split(";");
       const QString word = keyParts[0];
@@ -312,7 +314,7 @@ void PoiImplicitTagRulesDeriver::_removeKvpsBelowOccuranceThreshold(const int mi
       {
         LOG_VARE(wordKvp);
       }
-      FixedLengthString fixedLengthWordKvp = _toFixedLengthWordKvp(wordKvp);
+      FixedLengthString fixedLengthWordKvp = _qStrToFixedLengthStr(wordKvp);
       LOG_VART(fixedLengthWordKvp.data);
       updatedCounts[fixedLengthWordKvp] = count;
       if (!updatedValues.contains(wordKvpKey))
@@ -328,7 +330,8 @@ void PoiImplicitTagRulesDeriver::_removeKvpsBelowOccuranceThreshold(const int mi
     }
   }
 
-  _wordKvpsToOccuranceCounts = _stxxlMapToQtMap(updatedCounts);
+  _wordKvpsToOccuranceCounts.clear();
+  _wordKvpsToOccuranceCounts.insert(updatedCounts.begin(), updatedCounts.end());
   _wordTagKeysToTagValues = updatedValues;
 
   LOG_DEBUG(
@@ -350,19 +353,19 @@ void PoiImplicitTagRulesDeriver::_removeIrrelevantKeyTypes(const QStringList typ
   QMap<QString, QStringList> updatedValues; //*
 
   long irrelevantKvpRemovalCount = 0;
-  for (QMap<QString, long>::const_iterator kvpCountsItr = _wordKvpsToOccuranceCounts.begin();
+  for (FixedLengthStringToLongMap::const_iterator kvpCountsItr = _wordKvpsToOccuranceCounts.begin();
        kvpCountsItr != _wordKvpsToOccuranceCounts.end(); ++kvpCountsItr)
   {
-    const QString wordKvp = kvpCountsItr.key();
-    const QStringList keyParts = kvpCountsItr.key().split(";");
+    const QString wordKvp = _fixedLengthStrToQStr(kvpCountsItr->first);
+    const QStringList keyParts = wordKvp.split(";");
     const QString word = keyParts[0];
     const QString key = keyParts[1].split("=")[0];
 
     if (typeKeysAllowed.contains(key.toLower()))
     {
-      FixedLengthString fixedLengthWordKvp = _toFixedLengthWordKvp(wordKvp);
+      FixedLengthString fixedLengthWordKvp = _qStrToFixedLengthStr(wordKvp);
       LOG_VART(fixedLengthWordKvp.data);
-      updatedCounts[fixedLengthWordKvp] = kvpCountsItr.value();
+      updatedCounts[fixedLengthWordKvp] = kvpCountsItr->second;
       const QString wordKvpKey = word % ";" % key;
       updatedValues[wordKvpKey] = _wordTagKeysToTagValues[wordKvpKey];
     }
@@ -372,7 +375,8 @@ void PoiImplicitTagRulesDeriver::_removeIrrelevantKeyTypes(const QStringList typ
     }
   }
 
-  _wordKvpsToOccuranceCounts = _stxxlMapToQtMap(updatedCounts);
+  _wordKvpsToOccuranceCounts.clear();
+  _wordKvpsToOccuranceCounts.insert(updatedCounts.begin(), updatedCounts.end());
   _wordTagKeysToTagValues = updatedValues;
 
   LOG_DEBUG(
@@ -409,7 +413,8 @@ void PoiImplicitTagRulesDeriver::_removeDuplicatedKeyTypes()
       {
         const QString wordKvp = wordKvpKey % "=" % vals.at(i);
         LOG_VART(wordKvp);
-        const long occurranceCount = _wordKvpsToOccuranceCounts[wordKvp];
+        FixedLengthString fixedLengthWordKvp = _qStrToFixedLengthStr(wordKvp);
+        const long occurranceCount = _wordKvpsToOccuranceCounts[fixedLengthWordKvp];
         LOG_VART(occurranceCount);
         if (occurranceCount > highestOccurranceCount)
         {
@@ -427,7 +432,7 @@ void PoiImplicitTagRulesDeriver::_removeDuplicatedKeyTypes()
           LOG_VARE(highestOccurranceWordKvp);
         }
         FixedLengthString fixedLengthHighestOccurranceWordKvp =
-          _toFixedLengthWordKvp(highestOccurranceWordKvp);
+          _qStrToFixedLengthStr(highestOccurranceWordKvp);
         updatedCounts[fixedLengthHighestOccurranceWordKvp] = highestOccurranceCount;
         LOG_VART(updatedCounts[fixedLengthHighestOccurranceWordKvp]);
         const QString highestOccurranceVal = highestOccurranceWordKvp.split("=")[1];
@@ -451,15 +456,16 @@ void PoiImplicitTagRulesDeriver::_removeDuplicatedKeyTypes()
       {
         LOG_VARE(wordKvp);
       }
-      FixedLengthString fixedLengthWordKvp = _toFixedLengthWordKvp(wordKvp);
-      updatedCounts[fixedLengthWordKvp] = _wordKvpsToOccuranceCounts[wordKvp];
+      FixedLengthString fixedLengthWordKvp = _qStrToFixedLengthStr(wordKvp);
+      updatedCounts[fixedLengthWordKvp] = _wordKvpsToOccuranceCounts[fixedLengthWordKvp];
       LOG_VART(updatedCounts[fixedLengthWordKvp]);
       updatedValues[wordKvpKey] = _wordTagKeysToTagValues[wordKvpKey];
       LOG_VART(updatedValues[wordKvpKey]);
     }
   }
 
-  _wordKvpsToOccuranceCounts = _stxxlMapToQtMap(updatedCounts);
+  _wordKvpsToOccuranceCounts.clear();
+  _wordKvpsToOccuranceCounts.insert(updatedCounts.begin(), updatedCounts.end());
   _wordTagKeysToTagValues= updatedValues;
 
   LOG_DEBUG(
@@ -473,10 +479,10 @@ void PoiImplicitTagRulesDeriver::_generateTagRulesByWord()
 
   //_tagRulesByWord: key=<word>, value=map: key=<kvp>, value=<kvp occurance count>
 
-  for (QMap<QString, long>::const_iterator kvpsWithCountsItr = _wordKvpsToOccuranceCounts.begin();
+  for (FixedLengthStringToLongMap::const_iterator kvpsWithCountsItr = _wordKvpsToOccuranceCounts.begin();
        kvpsWithCountsItr != _wordKvpsToOccuranceCounts.end(); ++kvpsWithCountsItr)
   {
-    const QString wordKvp = kvpsWithCountsItr.key();
+    const QString wordKvp = _fixedLengthStrToQStr(kvpsWithCountsItr->first);
     LOG_VART(wordKvp);
     const QStringList wordKvpParts = wordKvp.split(";");
     QString word = wordKvpParts[0];
@@ -488,14 +494,14 @@ void PoiImplicitTagRulesDeriver::_generateTagRulesByWord()
 
     const QString kvp = wordKvpParts[1];
     LOG_VART(kvp);
-    const long kvpCount = kvpsWithCountsItr.value();
+    const long kvpCount = kvpsWithCountsItr->second;
     LOG_VART(kvpCount);
 
     if (!_tagRulesByWord.contains(word))
     {
       _tagRulesByWord[word] = QMap<QString, long>();
     }
-    QMap<QString, long> kvpsWithCounts = _tagRulesByWord[word];
+    QMap<QString, long> kvpsWithCounts = _tagRulesByWord[word]; //*
     kvpsWithCounts[kvp] = kvpCount;
     _tagRulesByWord[word] = kvpsWithCounts;
   }
@@ -646,7 +652,7 @@ void PoiImplicitTagRulesDeriver::_unescapeRuleWords()
   }
 }
 
-FixedLengthString PoiImplicitTagRulesDeriver::_toFixedLengthWordKvp(const QString wordKvp)
+FixedLengthString PoiImplicitTagRulesDeriver::_qStrToFixedLengthStr(const QString wordKvp)
 {
   FixedLengthString fixedLengthWordKvp;
   memset(fixedLengthWordKvp.data, 0, sizeof fixedLengthWordKvp.data);
