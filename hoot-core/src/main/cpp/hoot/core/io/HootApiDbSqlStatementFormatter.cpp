@@ -84,16 +84,12 @@ QString HootApiDbSqlStatementFormatter::_toTagsString(const Tags& tags)
     QString value = it.value().trimmed();
     if (!value.isEmpty())
     {
-      key.replace("'", "\'");
-      key.replace("=>", "\\=\\>");
-      key.replace("\"", "\\\"");
+      key = key.replace("'", "\'").replace("=>", "\\=\\>").replace("\"", "\\\"");
       tagsStr.append("\"" % key % "\"");
 
       tagsStr.append("=>");
 
-      value.replace("'", "\'");
-      value.replace("=>", "\\=\\>");
-      value.replace("\"", "\\\"");
+      value = value.replace("'", "\'").replace("=>", "\\=\\>").replace("\"", "\\\"");
       tagsStr.append("\"" % value % "\"");
 
       tagsStr.append(",");
