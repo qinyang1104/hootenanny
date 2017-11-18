@@ -72,6 +72,7 @@ private:
 
   QString _sortedNewInput;
   boost::shared_ptr<QTemporaryFile> _sortTempFile;
+  QString _translationScript;
 
   long _logUpdateInterval;
 

@@ -101,7 +101,8 @@ void MultiaryIngester::_doInputErrorChecking(const QString newInput, const QStri
       " configuration option must be set in order to identify the ID field.");
   }
 
-  if (translationScript.trimmed().isEmpty())
+  _translationScript = translationScript;
+  if (_translationScript.trimmed().isEmpty())
   {
     throw IllegalArgumentException("A translation script must be defined.");
   }
@@ -115,8 +116,11 @@ void MultiaryIngester::ingest(const QString newInput, const QString translationS
   //do some input error checking before kicking off a potentially lengthy sort process
   _doInputErrorChecking(newInput, translationScript, referenceOutput, changesetOutput);
 
-  //script for translating input to OSM
-  conf().set(ConfigOptions::getTranslationScriptKey(), translationScript);
+  if (_translationScript.toLower() != "none")
+  {
+    //script for translating input to OSM
+    conf().set(ConfigOptions::getTranslationScriptKey(), translationScript);
+  }
 
   const QStringList dbUrlParts = referenceOutput.split("/");
   const QString mapName = dbUrlParts[dbUrlParts.size() - 1];
@@ -206,7 +210,10 @@ boost::shared_ptr<ElementInputStream> MultiaryIngester::_getFilteredNewInputStre
   //filter data down to POIs only, translate each element, and assign it a unique hash id
   boost::shared_ptr<PoiCriterion> elementCriterion(new PoiCriterion());
   QList<ElementVisitorPtr> visitors;
-  visitors.append(boost::shared_ptr<TranslationVisitor>(new TranslationVisitor()));
+  if (_translationScript.toLower() != "none")
+  {
+    visitors.append(boost::shared_ptr<TranslationVisitor>(new TranslationVisitor()));
+  }
   visitors.append(boost::shared_ptr<CalculateHashVisitor2>(new CalculateHashVisitor2()));
   boost::shared_ptr<ElementInputStream> filteredNewInputStream(
     new ElementCriterionVisitorInputStream(inputStream, elementCriterion, visitors));
