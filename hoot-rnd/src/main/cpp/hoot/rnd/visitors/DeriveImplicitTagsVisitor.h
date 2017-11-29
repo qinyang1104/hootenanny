@@ -36,6 +36,8 @@ class ImplicitRule;
 
 /**
  * Derive tags based on the names.
+ *
+ * OLD VERSION - to be replaced by AddImplicitlyDerivedTagsPoiVisitor
  */
 class DeriveImplicitTagsVisitor : public ElementVisitor
 {

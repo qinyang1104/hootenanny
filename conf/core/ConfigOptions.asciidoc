@@ -56,16 +56,6 @@ Prefix to apply to REF1 values.
 The REF1 values are typically used when training a model. See the Developer Documentation for
 details.
 
-=== apidb.bulk.inserter.file.output.status.update.interval
-
-* Data Type: long
-* Default Value: `10000`
-
-Count at which the parse status of each element type should be logged when writing to them to
-files by an OSM/Hootenanny API database bulk inserter.  e.g. With a value of 100, you will see a
-load status update message logged for every 100 elements parsed or file lines written.  This
-setting can have a negative impact on performance if set to a very low value.
-
 === apidb.bulk.inserter.output.files.copy.location
 
 * Data Type: string
@@ -1882,6 +1872,156 @@ current directory (CWD), $CWD/rules, $HOOT_HOME/rules.
 If true, POI conflation will ignore the types of the features being compared completely as long as
 those being compared have a populated name field.
 
+=== poi.implicit.tag.rules.add.top.tag.only
+
+* Data Type: bool
+* Default Value: `false`
+
+If true, the POI implicit tagger will only add the tag to the node with the highest tag occurrence
+count.
+
+=== poi.implicit.tag.rules.allow.tagging.generic.pois
+
+* Data Type: bool
+* Default Value: `true`
+
+If true, the POI implicit tagger will attempt to add more specific tags to existing generic
+POIs.  If false, the POI implicit tagger will ignore all POIs during tagging.
+
+=== poi.implicit.tag.rules.allow.tagging.specific.pois
+
+* Data Type: bool
+* Default Value: `true`
+
+If true, the POI implicit tagger will attempt to add more specific tags to existing non-generic
+POIs.  If false, the POI implicit tagger will ignore all non-generic POIs during tagging.
+
+=== poi.implicit.tag.rules.allow.words.involved.in.multiple.rules
+
+* Data Type: bool
+* Default Value: `false`
+
+If true, the POI implicit tagger will use the rule with the highest tag occurrence count when a
+word is involved in more than one tagging rule.
+
+=== poi.implicit.tag.rules.custom.rule.file
+
+* Data Type: string
+* Default Value: `${HOOT_HOME}/conf/core/poi-implicit-tag-rules/poiImplicitTagRulesCustomRuleList`
+
+Flat file containing tab separated word key/value pairs, one per line, to use as custom rules
+when deriving implicit tags from POI names.  Overridden by
+'poi.implicit.tag.rules.rule.ignore.file'.
+
+=== poi.implicit.tag.rules.database
+
+* Data Type: string
+* Default Value: `${HOOT_HOME}/conf/core/poi-implicit-tag-rules/ImplicitTagRules.sqlite`
+
+Database used by the AddImplicitlyDerivedTagsPoiVisitor to derive POI type tags implicitly based
+on a POI's name.
+
+=== poi.implicit.tag.rules.keep.temp.files
+
+* Data Type: bool
+* Default Value: `false`
+
+If true, the POI implicit tag generator/deriver will keep all temporary files.  For debugging only.
+
+=== poi.implicit.tag.rules.minimum.tag.occurrences.per.word
+
+* Data Type: int
+* Default Value: `1`
+
+The minimum number of times a tag must be associated with a word in order for an implicit tag rule
+to be created.
+
+=== poi.implicit.tag.rules.minimum.word.length
+
+* Data Type: int
+* Default Value: `1`
+
+The minimum allowed word length when associating word tokens with OSM tags.
+
+=== poi.implicit.tag.rules.reader.max.tag.cache.size
+
+* Data Type: int
+* Default Value: `1000000`
+
+The maximum number of word/tag combinations cached by the POI implicit tag rules reader when
+applying implicit tags to POIs.
+
+=== poi.implicit.tag.rules.reader.use.tags.cache
+
+* Data Type: bool
+* Default Value: `true`
+
+Determines whether the POI implicit tag rules reader uses a tags cache or not.
+
+=== poi.implicit.tag.rules.rule.ignore.file
+
+* Data Type: string
+* Default Value: `${HOOT_HOME}/conf/core/poi-implicit-tag-rules/poiImplicitTagRulesRuleIgnoreList`
+
+Flat file containing tab separated word key/value pairs, one per line, to ignore as rules
+when deriving implicit tags from POI names.
+
+=== poi.implicit.tag.rules.skip.filtering
+
+* Data Type: bool
+* Default Value: `false`
+
+If true, the POI implicit tag generator will keep node filtering.  Only set to true if the input
+data has been filtered with ImplicitTagEligiblePoiCriterion beforehand.
+
+=== poi.implicit.tag.rules.skip.translation
+
+* Data Type: bool
+* Default Value: `false`
+
+If true, the POI implicit tag generator will keep skip translation of input data.  Only set to
+true if the input data has been translated beforehand.
+
+=== poi.implicit.tag.rules.sort.parallel.count
+
+* Data Type: int
+* Default Value: `-1`
+
+The number of parallel processes used when sorting output.  The default value of -1 uses a count
+equal to the number of processors on the machine.  Valid values are -1 or 1 through the number
+of available processors.
+
+=== poi.implicit.tag.rules.tag.ignore.file
+
+* Data Type: string
+* Default Value: `${HOOT_HOME}/conf/core/poi-implicit-tag-rules/poiImplicitTagRulesTagIgnoreList`
+
+Flat file containing key/value pairs, one per line, to ignore when deriving implicit tags from POI
+names.  Use 'key=*' to ignore all tags for a given key.
+
+=== poi.implicit.tag.rules.tag.file
+
+* Data Type: string
+* Default Value: `${HOOT_HOME}/conf/core/poi-implicit-tag-rules/poiImplicitTagRulesTagKeyList`
+
+Flat file containing key/value pairs, one per line, to use when deriving implicit tags from POI
+names.  Use 'key=*' to accept all tags for a given key.  Overridden by
+'poi.implicit.tag.rules.tag.ignore.file'.
+
+=== poi.implicit.tag.rules.tokenize.names
+
+* Data Type: bool
+* Default Value: `true`
+
+If true, the raw generated POI implicit tag rules will be generated using tokenized names.
+
+=== poi.implicit.tag.rules.word.ignore.file
+
+* Data Type: string
+* Default Value: `${HOOT_HOME}/conf/core/poi-implicit-tag-rules/poiImplicitTagRulesWordIgnoreList`
+
+Flat file containing words, one per line, to ignore when deriving implicit tags from POI names.
+
 === poi.match.threshold
 
 * Data Type: double
@@ -2396,6 +2536,14 @@ renaming existing tag keys on all elements in a map.
 
 The key to be replaced by the TagRenameKeyVisitor.  TagRenameKeyVisitor allows for
 renaming existing tag keys on all elements in a map.
+
+=== task.status.update.interval
+
+* Data Type: long
+* Default Value: `10000`
+
+For commands supporting it, the iteration count at which a status message should be logged. This
+setting may have a negative impact on performance if set to a very low value.
 
 === test.case.cmd
 
