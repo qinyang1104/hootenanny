@@ -32,6 +32,7 @@
 #include <hoot/core/util/MetadataTags.h>
 #include <hoot/core/util/ConfigOptions.h>
 #include <hoot/core/util/StringUtils.h>
+#include <hoot/core/algorithms/Translator.h>
 
 // Qt
 #include <QSet>
@@ -53,7 +54,8 @@ _statusUpdateInterval(ConfigOptions().getTaskStatusUpdateInterval()),
 _minWordLength(ConfigOptions().getPoiImplicitTagRulesMinimumWordLength()),
 _smallestNumberOfTagsAdded(LONG_MAX),
 _largestNumberOfTagsAdded(0),
-_maxWordTokenizationGroupSize(1)
+_maxWordTokenizationGroupSize(1),
+_translateAllNamesToEnglish(false)
 {
   _ruleReader.reset(new ImplicitTagRulesSqliteReader());
   _ruleReader->open(ConfigOptions().getPoiImplicitTagRulesDatabase());
@@ -72,7 +74,8 @@ _statusUpdateInterval(ConfigOptions().getTaskStatusUpdateInterval()),
 _minWordLength(ConfigOptions().getPoiImplicitTagRulesMinimumWordLength()),
 _smallestNumberOfTagsAdded(LONG_MAX),
 _largestNumberOfTagsAdded(0),
-_maxWordTokenizationGroupSize(1)
+_maxWordTokenizationGroupSize(1),
+_translateAllNamesToEnglish(false)
 {
   _ruleReader.reset(new ImplicitTagRulesSqliteReader());
   _ruleReader->open(databasePath);
@@ -111,8 +114,8 @@ AddImplicitlyDerivedTagsBaseVisitor::~AddImplicitlyDerivedTagsBaseVisitor()
 
 void AddImplicitlyDerivedTagsBaseVisitor::setConfiguration(const Settings& conf)
 {
-  LOG_DEBUG("set config");
   const ConfigOptions confOptions(conf);
+  setTranslateAllNamesToEnglish(confOptions.getPoiImplicitTagRulesTranslateAllNamesToEnglish());
   _customRules.setCustomRuleFile(confOptions.getPoiImplicitTagRulesCustomRuleFile());
   _customRules.setRuleIgnoreFile(confOptions.getPoiImplicitTagRulesRuleIgnoreFile());
   _customRules.setTagIgnoreFile(confOptions.getPoiImplicitTagRulesTagIgnoreFile());
@@ -146,34 +149,86 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
 
     //TODO: if name:en doesn't exist (or is not the same as name), translate here (?) - also see
     //tokenize method
-    QStringList names;
-    if (e->getTags().contains("name:en"))
+    QStringList names = e->getTags().getNames();
+
+    if (_translateAllNamesToEnglish)
     {
-      LOG_VART(e->getTags());
-      Tags tagsCopy;
-      for (Tags::const_iterator tagItr = e->getTags().begin();
-           tagItr != e->getTags().end(); ++tagItr)
+      QStringList filteredNames;
+      if (e->getTags().contains("name:en"))
       {
-        const QString tagKey = tagItr.key();
-        if (tagKey.contains("name:") && tagKey != QLatin1String("name:en"))
+        filteredNames.append(e->getTags().get("name:en"));
+      }
+      else
+      {
+        for (int i = 0; i < names.size(); i++)
         {
+          const QString name = names.at(i);
+          LOG_VART(name);
+          if (name != e->getTags().get("alt_name"))
+          {
+            const QString englishName = Translator::getInstance().toEnglish(name);
+            LOG_VART(englishName);
+            filteredNames.append(englishName);
+            break;
+          }
         }
-        else if (tagKey == QLatin1String("alt_name") || tagKey == QLatin1String("name"))
+        if (filteredNames.isEmpty() && e->getTags().contains("alt_name"))
         {
-        }
-        else
-        {
-          tagsCopy.appendValue(tagKey, tagItr.value());
+          QString altName = e->getTags().get("alt_name");
+          if (altName.contains(";"))
+          {
+            altName = altName.split(";")[0];
+          }
+          LOG_VART(altName);
+          filteredNames.append(Translator::getInstance().toEnglish(e->getTags().get("alt_name")));
         }
       }
-      LOG_VART(tagsCopy);
-      names = tagsCopy.getNames();
-    }
-    else
-    {
-      names = e->getTags().getNames();
+      LOG_VART(filteredNames);
+      assert(!filteredNames.isEmpty());
+      names = filteredNames;
+
+//      if (!names.contains("name:en"))
+//      {
+//        for (int i = 0; i < names.size(); i++)
+//        {
+//          const QString name = names.at(i);
+//          if (name.startsWith("name"))
+//          {
+//            const QString englishTranslatedName = _englishTranslator.toEnglish(name);
+//            e->getTags().set("name:en", englishTranslatedName);
+//            break;
+//          }
+//        }
+//        if (!e->getTags().contains("name:en") && names.contains("alt_name"))
+//        {
+//          const QString englishTranslatedName =
+//            _englishTranslator.toEnglish(e->getTags().get("alt_name"));
+//          e->getTags().set("name:en", englishTranslatedName);
+//        }
+//      }
+//      LOG_VART(e->getTags());
+
+//      Tags tagsCopy;
+//      for (Tags::const_iterator tagItr = e->getTags().begin();
+//           tagItr != e->getTags().end(); ++tagItr)
+//      {
+//        const QString tagKey = tagItr.key();
+//        if (tagKey.contains("name:") && tagKey != QLatin1String("name:en"))
+//        {
+//        }
+//        else if (tagKey == QLatin1String("alt_name") || tagKey == QLatin1String("name"))
+//        {
+//        }
+//        else
+//        {
+//          tagsCopy.appendValue(tagKey, tagItr.value());
+//        }
+//      }
+//      LOG_VART(tagsCopy);
+//      names = tagsCopy.getNames();
     }
     LOG_VART(names);
+
     QStringList filteredNames;
     for (int i = 0; i < names.size(); i++)
     {
@@ -237,8 +292,8 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
       {
         //we didn't find any tags for the whole names, so let's look for them with the tokenized name
         //parts
-        const QSet<QString> nameTokens = _getNameTokens(e->getTags());
-        const QStringList nameTokensList = nameTokens.toList();
+        const QSet<QString> nameTokens = _getNameTokens(filteredNames);
+        QStringList nameTokensList = nameTokens.toList();
 
         //check custom rules first, then db for each group size in descending group size order
 
@@ -248,9 +303,20 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
           QStringList nameTokensListGroupSizeThree;
           for (int i = 0; i < nameTokensList.size() - 2; i++)
           {
-            nameTokensListGroupSizeThree.append(
-              nameTokensList.at(i) + " " + nameTokensList.at(i + 1) + " " +
-              nameTokensList.at(i + 2));
+            QString nameToken =
+              nameTokensList.at(i) + " " + nameTokensList.at(i + 1) + " " + nameTokensList.at(i + 2);
+            if (_translateAllNamesToEnglish)
+            {
+              const QString englishNameToken = Translator::getInstance().toEnglish(nameToken);
+//              if (englishNameToken.toLower() != nameToken.toLower())
+//              {
+//                LOG_TRACE(
+//                  "Successfully translated " << nameToken << " to " << englishNameToken << ".");
+//              }
+              nameToken = englishNameToken;
+              LOG_VART(englishNameToken);
+            }
+            nameTokensListGroupSizeThree.append(nameToken);
           }
           for (int i = 0; i < nameTokensListGroupSizeThree.size(); i++)
           {
@@ -278,8 +344,19 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
           QStringList nameTokensListGroupSizeTwo;
           for (int i = 0; i < nameTokensList.size() - 1; i++)
           {
-            nameTokensListGroupSizeTwo.append(
-              nameTokensList.at(i) + " " + nameTokensList.at(i + 1));
+            QString nameToken = nameTokensList.at(i) + " " + nameTokensList.at(i + 1);
+            if (_translateAllNamesToEnglish)
+            {
+              const QString englishNameToken = Translator::getInstance().toEnglish(nameToken);
+//              if (englishNameToken.toLower() != nameToken.toLower())
+//              {
+//                LOG_TRACE(
+//                  "Successfully translated " << nameToken << " to " << englishNameToken << ".");
+//              }
+              nameToken = englishNameToken;
+              LOG_VART(englishNameToken);
+            }
+            nameTokensListGroupSizeTwo.append(nameToken);
           }
           for (int i = 0; i < nameTokensListGroupSizeTwo.size(); i++)
           {
@@ -303,6 +380,22 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
 
         if (implicitlyDerivedTags.size() == 0)
         {
+          if (_translateAllNamesToEnglish)
+          {
+            QStringList translatedNameTokens;
+            for (int i = 0; i < nameTokensList.size(); i++)
+            {
+              const QString word = nameTokensList.at(i);
+              const QString englishNameToken = Translator::getInstance().toEnglish(word);
+//              if (englishNameToken.toLower() != word.toLower())
+//              {
+//                LOG_TRACE(
+//                  "Successfully translated " << word << " to " << englishNameToken << ".");
+//              }
+              translatedNameTokens.append(englishNameToken);
+            }
+            nameTokensList = translatedNameTokens;
+          }
           for (int i = 0; i < nameTokensList.size(); i++)
           {
             const QString word = nameTokensList.at(i);
@@ -490,45 +583,25 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
     if (_numNodesParsed % 1000 == 0)
     {
       PROGRESS_INFO(
-        "Parsed " << StringUtils::formatLargeNumber(_numNodesParsed) <<
-        " nodes from input.");
+        "Parsed " << StringUtils::formatLargeNumber(_numNodesParsed) << " nodes from input.");
     }
   }
 }
 
-QSet<QString> AddImplicitlyDerivedTagsBaseVisitor::_getNameTokens(const Tags& t)
+QSet<QString> AddImplicitlyDerivedTagsBaseVisitor::_getNameTokens(const QStringList names)
 {
   QStringList result;
 
-  QStringList names;
-  if (t.contains("name:en"))
-  {
-    LOG_VART(t);
-    Tags tagsCopy;
-    for (Tags::const_iterator tagItr = t.begin(); tagItr != t.end(); ++tagItr)
-    {
-      const QString tagKey = tagItr.key();
-      if (tagKey.contains("name:") && tagKey != QLatin1String("name:en"))
-      {
-      }
-      else if (tagKey == QLatin1String("alt_name") || tagKey == QLatin1String("name"))
-      {
-      }
-      else
-      {
-        tagsCopy.appendValue(tagKey, tagItr.value());
-      }
-    }
-    LOG_VART(tagsCopy);
-    names = tagsCopy.getNames();
-  }
-  else
-  {
-    names = t.getNames();
-  }
-  LOG_VART(names);
-  StringTokenizer tokenizer;
+  //const QStringList names = t.getNames();
+  //LOG_VART(names);
 
+  if (_translateAllNamesToEnglish)
+  {
+    assert(names.size() == 1);
+    //assert(t.contains("name:en"));
+  }
+
+  StringTokenizer tokenizer;
   foreach (const QString& n, names)
   {
     QStringList words = tokenizer.tokenize(n);

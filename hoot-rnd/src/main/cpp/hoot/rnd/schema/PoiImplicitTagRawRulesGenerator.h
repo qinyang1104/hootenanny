@@ -36,6 +36,7 @@
 #include <QString>
 #include <QHash>
 #include <QTemporaryFile>
+#include <QSet>
 
 namespace hoot
 {
@@ -89,7 +90,6 @@ private:
   boost::shared_ptr<QTemporaryFile> _dedupedCountFile;
   boost::shared_ptr<QTemporaryFile> _tieResolvedCountFile;
 
-  //QHash<QString, QString> _wordCaseMappings;
   QHash<QString, QString> _wordKeysToCountsValues;
   QHash<QString, QStringList> _duplicatedWordTagKeyCountsToValues;
 
@@ -101,7 +101,7 @@ private:
   QString _tempFileDir;
   bool _translateAllNamesToEnglish;
   bool _useSchemaTagValuesForWordsOnly;
-  QStringList _schemaTagValues;
+  QSet<QString> _schemaTagValues;
   int _maxWordTokenizationGroupSize;
 
   ImplicitTagEligiblePoiCriterion _poiFilter;
