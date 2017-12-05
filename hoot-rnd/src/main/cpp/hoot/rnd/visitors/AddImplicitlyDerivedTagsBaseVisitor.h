@@ -85,6 +85,7 @@ private:
   int _minWordLength;
   long _smallestNumberOfTagsAdded;
   long _largestNumberOfTagsAdded;
+  int _maxWordTokenizationGroupSize;
 
   PoiImplicitTagCustomRules _customRules;
 

@@ -52,7 +52,8 @@ _numNodesParsed(0),
 _statusUpdateInterval(ConfigOptions().getTaskStatusUpdateInterval()),
 _minWordLength(ConfigOptions().getPoiImplicitTagRulesMinimumWordLength()),
 _smallestNumberOfTagsAdded(LONG_MAX),
-_largestNumberOfTagsAdded(0)
+_largestNumberOfTagsAdded(0),
+_maxWordTokenizationGroupSize(1)
 {
   _ruleReader.reset(new ImplicitTagRulesSqliteReader());
   _ruleReader->open(ConfigOptions().getPoiImplicitTagRulesDatabase());
@@ -70,7 +71,8 @@ _numNodesParsed(0),
 _statusUpdateInterval(ConfigOptions().getTaskStatusUpdateInterval()),
 _minWordLength(ConfigOptions().getPoiImplicitTagRulesMinimumWordLength()),
 _smallestNumberOfTagsAdded(LONG_MAX),
-_largestNumberOfTagsAdded(0)
+_largestNumberOfTagsAdded(0),
+_maxWordTokenizationGroupSize(1)
 {
   _ruleReader.reset(new ImplicitTagRulesSqliteReader());
   _ruleReader->open(databasePath);
@@ -231,32 +233,94 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
             matchingWords);
         tagsToAdd = implicitlyDerivedTags;
       }
-      //TODO: modify this to do 2 and 3 word token groups
       else if (_tokenizeNames)
       {
         //we didn't find any tags for the whole names, so let's look for them with the tokenized name
         //parts
         const QSet<QString> nameTokens = _getNameTokens(e->getTags());
-
-        //check custom rules first
         const QStringList nameTokensList = nameTokens.toList();
-        for (int i = 0; i < nameTokensList.size(); i++)
+
+        //check custom rules first, then db for each group size in descending group size order
+
+        if (implicitlyDerivedTags.size() == 0 && nameTokens.size() > 3 &&
+            _maxWordTokenizationGroupSize >= 3)
         {
-          const QString word = nameTokensList.at(i);
-          const QString tag = _customRules.getCustomRulesList().value(word, "");
-          if (!tag.trimmed().isEmpty())
+          QStringList nameTokensListGroupSizeThree;
+          for (int i = 0; i < nameTokensList.size() - 2; i++)
           {
-            implicitlyDerivedTags.appendValue(tag);
-            matchingWords.insert(word);
-            LOG_DEBUG("Found custom rule for word: " << word << " and tag: " << tag);
-            break;
+            nameTokensListGroupSizeThree.append(
+              nameTokensList.at(i) + " " + nameTokensList.at(i + 1) + " " +
+              nameTokensList.at(i + 2));
+          }
+          for (int i = 0; i < nameTokensListGroupSizeThree.size(); i++)
+          {
+            const QString word = nameTokensListGroupSizeThree.at(i);
+            const QString tag = _customRules.getCustomRulesList().value(word, "");
+            if (!tag.trimmed().isEmpty())
+            {
+              implicitlyDerivedTags.appendValue(tag);
+              matchingWords.insert(word);
+              LOG_TRACE("Found custom rule for word: " << word << " and tag: " << tag);
+              break;
+            }
+          }
+          if (implicitlyDerivedTags.size() == 0)
+          {
+            implicitlyDerivedTags =
+              _ruleReader->getImplicitTags(
+                nameTokensListGroupSizeThree.toSet(), matchingWords, wordsInvolvedInMultipleRules);
+          }
+        }
+
+        if (implicitlyDerivedTags.size() == 0 && nameTokens.size() > 2 &&
+            _maxWordTokenizationGroupSize >= 2)
+        {
+          QStringList nameTokensListGroupSizeTwo;
+          for (int i = 0; i < nameTokensList.size() - 1; i++)
+          {
+            nameTokensListGroupSizeTwo.append(
+              nameTokensList.at(i) + " " + nameTokensList.at(i + 1));
+          }
+          for (int i = 0; i < nameTokensListGroupSizeTwo.size(); i++)
+          {
+            const QString word = nameTokensListGroupSizeTwo.at(i);
+            const QString tag = _customRules.getCustomRulesList().value(word, "");
+            if (!tag.trimmed().isEmpty())
+            {
+              implicitlyDerivedTags.appendValue(tag);
+              matchingWords.insert(word);
+              LOG_TRACE("Found custom rule for word: " << word << " and tag: " << tag);
+              break;
+            }
+          }
+          if (implicitlyDerivedTags.size() == 0)
+          {
+            implicitlyDerivedTags =
+              _ruleReader->getImplicitTags(
+                nameTokensListGroupSizeTwo.toSet(), matchingWords, wordsInvolvedInMultipleRules);
           }
         }
 
         if (implicitlyDerivedTags.size() == 0)
         {
-          implicitlyDerivedTags =
-            _ruleReader->getImplicitTags(nameTokens, matchingWords, wordsInvolvedInMultipleRules);
+          for (int i = 0; i < nameTokensList.size(); i++)
+          {
+            const QString word = nameTokensList.at(i);
+            const QString tag = _customRules.getCustomRulesList().value(word, "");
+            if (!tag.trimmed().isEmpty())
+            {
+              implicitlyDerivedTags.appendValue(tag);
+              matchingWords.insert(word);
+              LOG_TRACE("Found custom rule for word: " << word << " and tag: " << tag);
+              break;
+            }
+          }
+
+          if (implicitlyDerivedTags.size() == 0)
+          {
+            implicitlyDerivedTags =
+              _ruleReader->getImplicitTags(nameTokens, matchingWords, wordsInvolvedInMultipleRules);
+          }
         }
 
         LOG_VART(implicitlyDerivedTags);

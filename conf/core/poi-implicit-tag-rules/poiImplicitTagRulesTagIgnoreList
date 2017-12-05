@@ -1,5 +1,6 @@
 # tags that are always ignored; key=value
 # keep alphabetized
+# TODO: change to place=*
 place=administrative
 place=locality
 place=populated

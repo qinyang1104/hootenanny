@@ -71,6 +71,9 @@ public:
   void setSkipTranslation(bool skip) { _skipTranslation = skip; }
   void setKeepTempFiles(bool keep) { _keepTempFiles = keep; }
   void setTempFileDir(QString dir) { _tempFileDir = dir; }
+  void setTranslateAllNamesToEnglish(bool translate) { _translateAllNamesToEnglish = translate; }
+  void setUseSchemaTagValuesForWordsOnly(bool use) { _useSchemaTagValuesForWordsOnly = use; }
+  void setMaxWordTokenizationGroupSize(int size) { _maxWordTokenizationGroupSize = size; }
 
 private:
 
@@ -96,6 +99,10 @@ private:
   bool _skipTranslation;
   bool _keepTempFiles;
   QString _tempFileDir;
+  bool _translateAllNamesToEnglish;
+  bool _useSchemaTagValuesForWordsOnly;
+  QStringList _schemaTagValues;
+  int _maxWordTokenizationGroupSize;
 
   ImplicitTagEligiblePoiCriterion _poiFilter;
 

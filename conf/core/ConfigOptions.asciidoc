@@ -1929,6 +1929,13 @@ on a POI's name.
 
 If true, the POI implicit tag generator/deriver will keep all temporary files.  For debugging only.
 
+=== poi.implicit.tag.rules.maximum.word.tokenization.group.size
+
+* Data Type: int
+* Default Value: `1`
+
+The largest word group size used when tokenizing words.  Valid values are 1 to 3.
+
 === poi.implicit.tag.rules.minimum.tag.occurrences.per.word
 
 * Data Type: int
@@ -2015,6 +2022,21 @@ names.  Use 'key=*' to accept all tags for a given key.  Overridden by
 * Default Value: `true`
 
 If true, the raw generated POI implicit tag rules will be generated using tokenized names.
+
+=== poi.implicit.tag.rules.translate.all.names.to.english
+
+* Data Type: bool
+* Default Value: `false`
+
+If true, the POI implicit tag raw rules generator will translate all name words to English.
+
+=== poi.implicit.tag.rules.use.schema.tag.values.for.words.only
+
+* Data Type: bool
+* Default Value: `false`
+
+If true, the POI implicit tag raw rules generator will only consider words that correspond to a
+TagInfo tag value.
 
 === poi.implicit.tag.rules.word.ignore.file
 
