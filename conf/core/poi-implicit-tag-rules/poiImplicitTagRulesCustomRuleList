@@ -1,6 +1,13 @@
-# custom rules; tab separated: word	key=value 
+# custom rules; these override rules in the database; tab separated: word	key=value 
 # keep alphabetized
-#Jāmi	amenity=place_of_worship
-#Şiḩḩī	amenity=clinic
-#Şiḩḩīy	amenity=hospital
-#petroleumeum	amenity=fuel
+nursery	amenity=nursery
+grocery	shop=grocery
+spa	amenity=spa
+preschool	amenity=preschool
+playground	leisure=playground
+petroleumeum	amenity=fuel
+bus station	amenity=bus_station
+shop	shop=yes
+building	building=yes
+office	building=office
+apartment	building=apartment

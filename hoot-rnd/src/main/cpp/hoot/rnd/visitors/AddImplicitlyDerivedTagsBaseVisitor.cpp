@@ -187,7 +187,7 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
       assert(!filteredNames.isEmpty());
       names = filteredNames;
     }
-    LOG_VART(names);
+    LOG_VARD(names);
 
     QStringList filteredNames;
     for (int i = 0; i < names.size(); i++)
@@ -199,7 +199,7 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
         filteredNames.append(name);
       }
     }
-    LOG_VART(filteredNames);
+    LOG_VARD(filteredNames);
 
     if (filteredNames.size() > 0)
     {
@@ -252,8 +252,12 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
       {
         //we didn't find any tags for the whole names, so let's look for them with the tokenized name
         //parts
-        const QSet<QString> nameTokens = _getNameTokens(filteredNames);
-        QStringList nameTokensList = nameTokens.toList();
+        //const QSet<QString> nameTokens = _getNameTokens(filteredNames);
+        QStringList nameTokensList = _getNameTokens(filteredNames);
+
+        LOG_VARD(nameTokensList);
+        LOG_VARD(implicitlyDerivedTags.size());
+        LOG_VARD(nameTokensList.size());
 
         LOG_VARD(implicitlyDerivedTags.size());
         LOG_VARD(nameTokens.size());
@@ -262,9 +266,11 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
 
         LOG_VARD(_maxWordTokenizationGroupSize);
 
-        if (implicitlyDerivedTags.size() == 0 && nameTokens.size() > 3 &&
+        if (implicitlyDerivedTags.size() == 0 && nameTokensList.size() > 3 &&
             _maxWordTokenizationGroupSize >= 3)
         {
+          LOG_DEBUG("Attempting match with token group size of 3...");
+
           QStringList nameTokensListGroupSizeThree;
           for (int i = 0; i < nameTokensList.size() - 2; i++)
           {
@@ -283,6 +289,7 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
             }
             nameTokensListGroupSizeThree.append(nameToken);
           }
+          LOG_VARD(nameTokensListGroupSizeThree);
 //          for (int i = 0; i < nameTokensListGroupSizeThree.size(); i++)
 //          {
 //            const QString word = nameTokensListGroupSizeThree.at(i);
@@ -307,9 +314,11 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
           LOG_VARD(wordsInvolvedInMultipleRules);
         }
 
-        if (implicitlyDerivedTags.size() == 0 && nameTokens.size() > 2 &&
+        if (implicitlyDerivedTags.size() == 0 && nameTokensList.size() > 2 &&
             _maxWordTokenizationGroupSize >= 2)
         {
+          LOG_DEBUG("Attempting match with token group size of 2...");
+
           QStringList nameTokensListGroupSizeTwo;
           for (int i = 0; i < nameTokensList.size() - 1; i++)
           {
@@ -327,6 +336,7 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
             }
             nameTokensListGroupSizeTwo.append(nameToken);
           }
+          LOG_VARD(nameTokensListGroupSizeTwo);
 //          for (int i = 0; i < nameTokensListGroupSizeTwo.size(); i++)
 //          {
 //            const QString word = nameTokensListGroupSizeTwo.at(i);
@@ -345,10 +355,16 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
               _ruleReader->getImplicitTags(
                 nameTokensListGroupSizeTwo.toSet(), matchingWords, wordsInvolvedInMultipleRules);
           }
+
+          LOG_VARD(implicitlyDerivedTags);
+          LOG_VARD(matchingWords);
+          LOG_VARD(wordsInvolvedInMultipleRules);
         }
 
         if (implicitlyDerivedTags.size() == 0)
         {
+          LOG_DEBUG("Attempting match with token group size of 1...");
+
           if (_translateAllNamesToEnglish)
           {
             QStringList translatedNameTokens;
@@ -365,6 +381,7 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
             }
             nameTokensList = translatedNameTokens;
           }
+          LOG_VARD(nameTokensList);
 //          for (int i = 0; i < nameTokensList.size(); i++)
 //          {
 //            const QString word = nameTokensList.at(i);
@@ -381,32 +398,33 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
           if (implicitlyDerivedTags.size() == 0)
           {
             implicitlyDerivedTags =
-              _ruleReader->getImplicitTags(nameTokens, matchingWords, wordsInvolvedInMultipleRules);
+              _ruleReader->getImplicitTags(
+                nameTokensList.toSet(), matchingWords, wordsInvolvedInMultipleRules);
           }
         }
 
-        LOG_VART(implicitlyDerivedTags);
-        LOG_VART(matchingWords);
-        LOG_VART(wordsInvolvedInMultipleRules);
+        LOG_VARD(implicitlyDerivedTags);
+        LOG_VARD(matchingWords);
+        LOG_VARD(wordsInvolvedInMultipleRules);
 
         if (wordsInvolvedInMultipleRules)
         {
-          LOG_TRACE(
-            "Found duplicate match for name tokens: " << nameTokens << " with matching words: " <<
+          LOG_DEBUG(
+            "Found duplicate match for name tokens: " << nameTokensList << " with matching words: " <<
             matchingWords);
           foundDuplicateMatch = true;
         }
         else if (implicitlyDerivedTags.size() > 0)
         {
-          LOG_TRACE(
-            "Derived implicit tags for name tokens: " << nameTokens << " with matching words: " <<
+          LOG_DEBUG(
+            "Derived implicit tags for name tokens: " << nameTokensList << " with matching words: " <<
             matchingWords);
           tagsToAdd = implicitlyDerivedTags;
         }
       }
-      LOG_VART(tagsToAdd);
+      LOG_VARD(tagsToAdd);
 
-      LOG_VART(foundDuplicateMatch);
+      LOG_VARD(foundDuplicateMatch);
       if (foundDuplicateMatch)
       {
         QStringList matchingWordsList = matchingWords.toList();
@@ -449,23 +467,23 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
             }
           }
         }
-        LOG_VART(ruleFilteredTags);
+        LOG_VARD(ruleFilteredTags);
 
         Tags updatedTags;
         bool tagsAdded = false;
         //TODO: check tag include list
-        LOG_VART(_elementIsASpecificPoi);
+        LOG_VARD(_elementIsASpecificPoi);
         for (Tags::const_iterator tagItr = ruleFilteredTags.begin();
              tagItr != ruleFilteredTags.end(); ++tagItr)
         {
           const QString implicitTagKey = tagItr.key();
-          LOG_VART(implicitTagKey);
+          LOG_VARD(implicitTagKey);
           const QString implicitTagValue = tagItr.value();
-          LOG_VART(implicitTagValue);
+          LOG_VARD(implicitTagValue);
           const QString tagStr = implicitTagKey % "=" % implicitTagValue;
           if (_customRules.getTagIgnoreList().contains(tagStr))
           {
-            //skip
+            LOG_DEBUG("Skipping tag on ignore list: " << tagStr);
           }
           else if (e->getTags().contains(implicitTagKey))
           {
@@ -478,12 +496,12 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
             const QString elementTagValue = e->getTags()[implicitTagKey];
             //only use the implicit tag if it is more specific than the one the element already has;
             //if neither is more specific than the other, we'll arbitrarily keep the one we already had
-            LOG_VART(OsmSchema::getInstance().isAncestor(implicitTagKey % "=" % implicitTagValue,
+            LOG_VARD(OsmSchema::getInstance().isAncestor(implicitTagKey % "=" % implicitTagValue,
                                                          elementTagKey % "=" % elementTagValue));
             if (OsmSchema::getInstance().isAncestor(implicitTagKey % "=" % implicitTagValue,
                                                     elementTagKey % "=" % elementTagValue))
             {
-              LOG_TRACE(
+              LOG_DEBUG(
                 implicitTagKey % "=" % implicitTagValue << " is more specific than " <<
                 elementTagKey % "=" % elementTagValue << " on the input feature.  Replacing with " <<
                 "the more specific tag.")
@@ -495,17 +513,16 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
               updatedTags.appendValue(elementTagKey, elementTagValue);
             }
           }
-          //TODO: Silver Avenue clinic - but increases wrong ways in C
           else if (!_elementIsASpecificPoi)
           {
-            LOG_TRACE("Input feature does not contain tag: " <<
+            LOG_DEBUG("Input feature does not contain tag: " <<
                       implicitTagKey % "=" % implicitTagValue << ", so adding it...");
             updatedTags.appendValue(implicitTagKey, implicitTagValue);
             tagsAdded = true;
           }
         }
-        LOG_VART(updatedTags);
-        LOG_VART(tagsAdded);
+        LOG_VARD(updatedTags);
+        LOG_VARD(tagsAdded);
         if (tagsAdded)
         {
           tagsToAdd = updatedTags;
@@ -514,7 +531,7 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
         {
           tagsToAdd.clear();
         }
-        LOG_VART(tagsToAdd);
+        LOG_VARD(tagsToAdd);
 
         if (!tagsToAdd.isEmpty())
         {
@@ -526,7 +543,7 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
             "Added " + QString::number(tagsToAdd.size()) + " implicitly derived tag(s) based on: " +
             matchingWordsList.join(", ");
           tagValue += "; tags added: " + tagsToAdd.toString().trimmed().replace("\n", ", ");
-          LOG_VART(tagValue);
+          LOG_VARD(tagValue);
           e->getTags().appendValue("hoot:implicitTags:tagsAdded", tagValue);
           _numNodesModified++;
           _numTagsAdded += tagsToAdd.size();
@@ -557,7 +574,7 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
   }
 }
 
-QSet<QString> AddImplicitlyDerivedTagsBaseVisitor::_getNameTokens(const QStringList names)
+QStringList AddImplicitlyDerivedTagsBaseVisitor::_getNameTokens(const QStringList names)
 {
   QStringList result;
 
@@ -576,11 +593,12 @@ QSet<QString> AddImplicitlyDerivedTagsBaseVisitor::_getNameTokens(const QStringL
     QStringList words = tokenizer.tokenize(n);
     foreach (const QString& w, words)
     {
-      if (!_customRules.getWordIgnoreList().contains(w.toLower()))
-      {
-        LOG_TRACE("Inserting token: " << w);
+      //see comment below
+      //if (!_customRules.getWordIgnoreList().contains(w.toLower()))
+      //{
+        LOG_DEBUG("Inserting token: " << w);
         result.append(w.toLower());
-      }
+      //}
     }
   }
 
@@ -588,15 +606,17 @@ QSet<QString> AddImplicitlyDerivedTagsBaseVisitor::_getNameTokens(const QStringL
   for (int i = 0; i < result.size(); i++)
   {
     const QString name = result.at(i);
-    if (name.length() >= _minWordLength &&
-        !_customRules.getWordIgnoreList().contains(name.toLower()))
-    {
+    //These were already handled in rules derivation and are just causing bugs at this point.
+    //TODO: all filtering logic needs to be moved out of this class.
+    //if (name.length() >= _minWordLength &&
+    //    !_customRules.getWordIgnoreList().contains(name.toLower()))
+    //{
       filteredNames.append(name);
-    }
+    //}
   }
-  LOG_VART(filteredNames);
+  LOG_VARD(filteredNames);
 
-  return filteredNames.toSet();
+  return filteredNames;
 }
 
 }
