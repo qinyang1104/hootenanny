@@ -259,9 +259,6 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
         LOG_VARD(implicitlyDerivedTags.size());
         LOG_VARD(nameTokensList.size());
 
-        LOG_VARD(implicitlyDerivedTags.size());
-        LOG_VARD(nameTokens.size());
-
         //check custom rules first, then db for each group size in descending group size order
 
         LOG_VARD(_maxWordTokenizationGroupSize);

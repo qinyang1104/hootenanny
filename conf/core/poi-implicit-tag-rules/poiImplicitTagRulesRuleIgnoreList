@@ -1,13 +1,3 @@
-# rules that are always ignored; these override rules in the database; tab separated: word	key=value
+# rules that are always ignored; this list is for words that you never want associated with a tagging rule; tab separated: word	key=value
 # keep alphabetized
-sea	tourism=hotel
-reservoir	natural=water
-lake	natural=water
-apartments	tourism=hotel
-boutique	tourism=hotel
-bus station	highway=bus_stop
-spa	shop=beauty
-spa	tourism=hotel
-grocery	shop=convenience
-preschool	amenity=school
-playground	leisure=park
+#TODO: this list is no longer needed

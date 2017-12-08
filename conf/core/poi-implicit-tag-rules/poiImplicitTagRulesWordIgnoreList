@@ -1,14 +1,39 @@
-# exact match words to always ignore (longer phrases containing these words will not be ignored)
-# keep alphabetized and in lower case
-#office
+# This file contains exact match words in names to always ignore (longer phrases containing these words will not be ignored).
+# Use this list to fine tune tagging rules behavior based on the auto-generated rules database.
+# keep list alphabetized and in lower case
+
+and
+bin
+boutique
+business park
+club
+city
+department
+facility
+food
+garage
+gate
+general
+hall
+headquarters
+home
+house
+homes
+office
+offices
 parish
 plaza
+point
 rescue
 service
-#shop
+service station
+station
+# TODO: this should negate other matches?
+street
 studio
 town
 tree
 village
 water
 wood
+
