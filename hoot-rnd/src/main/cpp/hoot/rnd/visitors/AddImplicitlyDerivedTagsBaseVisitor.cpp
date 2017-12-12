@@ -552,6 +552,14 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
           tagValue += "; tags added: " + tagsToAdd.toString().trimmed().replace("\n", ", ");
           LOG_VARD(tagValue);
           e->getTags().appendValue("hoot:implicitTags:tagsAdded", tagValue);
+          if (e->getTags().get("poi") == "yes")
+          {
+            e->getTags().remove("poi");
+          }
+          if (tagsToAdd.get("building") != "yes" && e->getTags().get("building") == "yes")
+          {
+            e->getTags().remove("building");
+          }
           _numNodesModified++;
           _numTagsAdded += tagsToAdd.size();
           if (_numTagsAdded < _smallestNumberOfTagsAdded)
