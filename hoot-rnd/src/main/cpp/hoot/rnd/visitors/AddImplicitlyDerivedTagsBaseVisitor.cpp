@@ -56,7 +56,8 @@ _smallestNumberOfTagsAdded(LONG_MAX),
 _largestNumberOfTagsAdded(0),
 _maxWordTokenizationGroupSize(1),
 _translateAllNamesToEnglish(false),
-_skipOldNameTag(true)
+_skipOldNameTag(true),
+_matchEndOfNameSingleTokenFirst(false)
 {
   _ruleReader.reset(new ImplicitTagRulesSqliteReader());
   _ruleReader->open(ConfigOptions().getPoiImplicitTagRulesDatabase());
@@ -77,7 +78,8 @@ _smallestNumberOfTagsAdded(LONG_MAX),
 _largestNumberOfTagsAdded(0),
 _maxWordTokenizationGroupSize(1),
 _translateAllNamesToEnglish(false),
-_skipOldNameTag(true)
+_skipOldNameTag(true),
+_matchEndOfNameSingleTokenFirst(false)
 {
   _ruleReader.reset(new ImplicitTagRulesSqliteReader());
   _ruleReader->open(databasePath);
@@ -120,6 +122,7 @@ void AddImplicitlyDerivedTagsBaseVisitor::setConfiguration(const Settings& conf)
   setTranslateAllNamesToEnglish(confOptions.getPoiImplicitTagRulesTranslateAllNamesToEnglish());
   setMaxWordTokenizationGroupSize(
     confOptions.getPoiImplicitTagRulesMaximumWordTokenizationGroupSize());
+  setMatchEndOfNameSingleTokenFirst(confOptions.getPoiImplicitTagRulesMatchEndOfNameSingleTokenFirst());
   _customRules.setCustomRuleFile(confOptions.getPoiImplicitTagRulesCustomRuleFile());
   _customRules.setRuleIgnoreFile(confOptions.getPoiImplicitTagRulesRuleIgnoreFile());
   _customRules.setTagIgnoreFile(confOptions.getPoiImplicitTagRulesTagIgnoreFile());
@@ -203,12 +206,35 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
     for (int i = 0; i < names.size(); i++)
     {
       QString name = names.at(i);
+
       //TODO: fix
       //name = StringUtils::replaceNonAlphaNumericCharsWithSpace(name).trimmed();
+
+      //TODO: move to common class
+      name =
+        name.replace("(", "").replace(")", "").replace(".", "").replace("/", " ").replace("<", "")
+            .replace(">", "").replace("[", "").replace("]", "").replace("@", "").replace("&", "and");
+      if (name.startsWith("-"))
+      {
+        name = name.replace(0, 1, "");
+      }
+      if (name.startsWith("_"))
+      {
+        name = name.replace(0, 1, "");
+      }
+      //TOOD: expand this
+      if (name.at(0).isDigit() &&
+          (name.endsWith("th") || name.endsWith("nd") || name.endsWith("rd") || name.endsWith("st") ||
+           name.endsWith("ave") || name.endsWith("avenue") || name.endsWith("st") ||
+           name.endsWith("street") || name.endsWith("pl") || name.endsWith("plaza")))
+      {
+        name = "";
+      }
+
       if (name.length() >= _minWordLength &&
           !_customRules.getWordIgnoreList().contains(name.toLower()))
       {
-        filteredNames.append(name);
+        filteredNames.append(name.toLower());
       }
     }
     LOG_VARD(filteredNames);
@@ -218,20 +244,6 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
       Tags implicitlyDerivedTags;
       QSet<QString> matchingWords;
       bool wordsInvolvedInMultipleRules = false;
-
-      //check custom rules first
-//      for (int i = 0; i < filteredNames.size(); i++)
-//      {
-//        const QString word = filteredNames.at(i);
-//        const QString tag = _customRules.getCustomRulesList().value(word, "");
-//        if (!tag.trimmed().isEmpty())
-//        {
-//          implicitlyDerivedTags.appendValue(tag);
-//          matchingWords.insert(word);
-//          LOG_TRACE("Found custom rule for word: " << word << " and tag: " << tag);
-//          break;
-//        }
-//      }
 
       if (implicitlyDerivedTags.size() == 0)
       {
@@ -246,6 +258,8 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
       LOG_VARD(matchingWords);
       LOG_VARD(wordsInvolvedInMultipleRules);
 
+      bool namesContainBuilding = false;
+      bool namesContainOffice = false;
       if (wordsInvolvedInMultipleRules)
       {
         LOG_DEBUG(
@@ -299,18 +313,7 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
             nameTokensListGroupSizeThree.append(nameToken);
           }
           LOG_VARD(nameTokensListGroupSizeThree);
-//          for (int i = 0; i < nameTokensListGroupSizeThree.size(); i++)
-//          {
-//            const QString word = nameTokensListGroupSizeThree.at(i);
-//            const QString tag = _customRules.getCustomRulesList().value(word, "");
-//            if (!tag.trimmed().isEmpty())
-//            {
-//              implicitlyDerivedTags.appendValue(tag);
-//              matchingWords.insert(word);
-//              LOG_TRACE("Found custom rule for word: " << word << " and tag: " << tag);
-//              break;
-//            }
-//          }
+
           if (implicitlyDerivedTags.size() == 0)
           {
             implicitlyDerivedTags =
@@ -335,30 +338,86 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
             if (_translateAllNamesToEnglish)
             {
               const QString englishNameToken = Translator::getInstance().toEnglish(nameToken);
-//              if (englishNameToken.toLower() != nameToken.toLower())
-//              {
-//                LOG_TRACE(
-//                  "Successfully translated " << nameToken << " to " << englishNameToken << ".");
-//              }
               nameToken = englishNameToken;
               LOG_VART(englishNameToken);
             }
             nameTokensListGroupSizeTwo.append(nameToken);
           }
           LOG_VARD(nameTokensListGroupSizeTwo);
-//          for (int i = 0; i < nameTokensListGroupSizeTwo.size(); i++)
-//          {
-//            const QString word = nameTokensListGroupSizeTwo.at(i);
-//            const QString tag = _customRules.getCustomRulesList().value(word, "");
-//            if (!tag.trimmed().isEmpty())
-//            {
-//              implicitlyDerivedTags.appendValue(tag);
-//              matchingWords.insert(word);
-//              LOG_TRACE("Found custom rule for word: " << word << " and tag: " << tag);
-//              break;
-//            }
-//          }
-          if (implicitlyDerivedTags.size() == 0)
+
+          if (_matchEndOfNameSingleTokenFirst)
+          {
+            QString endOfNameToken;
+
+            QString name = e->getTags().get("name:en");
+            for (int i = 0; i < nameTokensListGroupSizeTwo.size(); i++)
+            {
+              const QString nameToken = nameTokensListGroupSizeTwo.at(i);
+              if (name.endsWith(nameToken))
+              {
+                endOfNameToken = nameToken;
+                break;
+              }
+            }
+
+            if (endOfNameToken.isEmpty())
+            {
+              QString name = e->getTags().get("name");
+              for (int i = 0; i < nameTokensListGroupSizeTwo.size(); i++)
+              {
+                const QString nameToken = nameTokensListGroupSizeTwo.at(i);
+                if (name.endsWith(nameToken))
+                {
+                  endOfNameToken = nameToken;
+                  break;
+                }
+              }
+            }
+
+            if (endOfNameToken.isEmpty())
+            {
+              for (int i = 0; i < filteredNames.size(); i++)
+              {
+                const QString filteredName = filteredNames.at(i);
+                for (int j = 0; j < nameTokensListGroupSizeTwo.size(); j++)
+                {
+                  const QString nameToken = nameTokensListGroupSizeTwo.at(j);
+                  if (filteredName.endsWith(nameToken))
+                  {
+                    endOfNameToken = nameToken;
+                    break;
+                  }
+                }
+
+                if (!endOfNameToken.isEmpty())
+                {
+                  break;
+                }
+              }
+            }
+
+            if (!endOfNameToken.isEmpty())
+            {
+              QStringList tempTokenList;
+              tempTokenList.append(endOfNameToken);
+              implicitlyDerivedTags =
+                _ruleReader->getImplicitTags(
+                  tempTokenList.toSet(), matchingWords, wordsInvolvedInMultipleRules);
+              if (implicitlyDerivedTags.size() == 0)
+              {
+                implicitlyDerivedTags =
+                  _ruleReader->getImplicitTags(
+                    nameTokensListGroupSizeTwo.toSet(), matchingWords, wordsInvolvedInMultipleRules);
+              }
+            }
+            else
+            {
+              implicitlyDerivedTags =
+                _ruleReader->getImplicitTags(
+                  nameTokensListGroupSizeTwo.toSet(), matchingWords, wordsInvolvedInMultipleRules);
+            }
+          }
+          else
           {
             implicitlyDerivedTags =
               _ruleReader->getImplicitTags(
@@ -381,34 +440,105 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
             {
               const QString word = nameTokensList.at(i);
               const QString englishNameToken = Translator::getInstance().toEnglish(word);
-//              if (englishNameToken.toLower() != word.toLower())
-//              {
-//                LOG_TRACE(
-//                  "Successfully translated " << word << " to " << englishNameToken << ".");
-//              }
               translatedNameTokens.append(englishNameToken);
             }
             nameTokensList = translatedNameTokens;
           }
           LOG_VARD(nameTokensList);
-//          for (int i = 0; i < nameTokensList.size(); i++)
-//          {
-//            const QString word = nameTokensList.at(i);
-//            const QString tag = _customRules.getCustomRulesList().value(word, "");
-//            if (!tag.trimmed().isEmpty())
-//            {
-//              implicitlyDerivedTags.appendValue(tag);
-//              matchingWords.insert(word);
-//              LOG_TRACE("Found custom rule for word: " << word << " and tag: " << tag);
-//              break;
-//            }
-//          }
 
-          if (implicitlyDerivedTags.size() == 0)
+          if (nameTokensList.contains("building") || nameTokensList.contains("buildings"))
           {
-            implicitlyDerivedTags =
-              _ruleReader->getImplicitTags(
-                nameTokensList.toSet(), matchingWords, wordsInvolvedInMultipleRules);
+            namesContainBuilding = true;
+            nameTokensList.removeAll("building");
+            nameTokensList.removeAll("buildings");
+          }
+          if (nameTokensList.contains("office") || nameTokensList.contains("offices"))
+          {
+            namesContainOffice = true;
+            nameTokensList.removeAll("office");
+            nameTokensList.removeAll("offices");
+          }
+
+          if (implicitlyDerivedTags.size() == 0 && nameTokensList.size() > 0)
+          {
+            if (_matchEndOfNameSingleTokenFirst)
+            {
+              QString endOfNameToken;
+
+              QString name = e->getTags().get("name:en");
+              for (int i = 0; i < nameTokensList.size(); i++)
+              {
+                const QString nameToken = nameTokensList.at(i);
+                if (name.endsWith(nameToken))
+                {
+                  endOfNameToken = nameToken;
+                  break;
+                }
+              }
+
+              if (endOfNameToken.isEmpty())
+              {
+                QString name = e->getTags().get("name");
+                for (int i = 0; i < nameTokensList.size(); i++)
+                {
+                  const QString nameToken = nameTokensList.at(i);
+                  if (name.endsWith(nameToken))
+                  {
+                    endOfNameToken = nameToken;
+                    break;
+                  }
+                }
+              }
+
+              if (endOfNameToken.isEmpty())
+              {
+                for (int i = 0; i < filteredNames.size(); i++)
+                {
+                  const QString filteredName = filteredNames.at(i);
+                  for (int j = 0; j < nameTokensList.size(); j++)
+                  {
+                    const QString nameToken = nameTokensList.at(j);
+                    if (filteredName.endsWith(nameToken))
+                    {
+                      endOfNameToken = nameToken;
+                      break;
+                    }
+                  }
+
+                  if (!endOfNameToken.isEmpty())
+                  {
+                    break;
+                  }
+                }
+              }
+
+              if (!endOfNameToken.isEmpty())
+              {
+                QStringList tempTokenList;
+                tempTokenList.append(endOfNameToken);
+                implicitlyDerivedTags =
+                  _ruleReader->getImplicitTags(
+                    tempTokenList.toSet(), matchingWords, wordsInvolvedInMultipleRules);
+                if (implicitlyDerivedTags.size() == 0)
+                {
+                  implicitlyDerivedTags =
+                    _ruleReader->getImplicitTags(
+                      nameTokensList.toSet(), matchingWords, wordsInvolvedInMultipleRules);
+                }
+              }
+              else
+              {
+                implicitlyDerivedTags =
+                  _ruleReader->getImplicitTags(
+                    nameTokensList.toSet(), matchingWords, wordsInvolvedInMultipleRules);
+              }
+            }
+            else
+            {
+              implicitlyDerivedTags =
+                _ruleReader->getImplicitTags(
+                  nameTokensList.toSet(), matchingWords, wordsInvolvedInMultipleRules);
+            }
           }
         }
 
@@ -542,6 +672,17 @@ void AddImplicitlyDerivedTagsBaseVisitor::visit(const ElementPtr& e)
         }
         LOG_VARD(tagsToAdd);
 
+        if (tagsToAdd.isEmpty() && !_elementIsASpecificPoi && namesContainOffice)
+        {
+          tagsToAdd.appendValue("building", "office");
+          matchingWords.insert("office");
+        }
+        else if (tagsToAdd.isEmpty() && !_elementIsASpecificPoi && namesContainBuilding)
+        {
+          tagsToAdd.appendValue("building", "yes");
+          matchingWords.insert("building");
+        }
+
         if (!tagsToAdd.isEmpty())
         {
           e->getTags().addTags(tagsToAdd);
@@ -595,13 +736,9 @@ QStringList AddImplicitlyDerivedTagsBaseVisitor::_getNameTokens(const QStringLis
 {
   QStringList result;
 
-  //const QStringList names = t.getNames();
-  //LOG_VART(names);
-
   if (_translateAllNamesToEnglish)
   {
     assert(names.size() == 1);
-    //assert(t.contains("name:en"));
   }
 
   StringTokenizer tokenizer;
@@ -610,12 +747,8 @@ QStringList AddImplicitlyDerivedTagsBaseVisitor::_getNameTokens(const QStringLis
     QStringList words = tokenizer.tokenize(n);
     foreach (const QString& w, words)
     {
-      //see comment below
-      //if (!_customRules.getWordIgnoreList().contains(w.toLower()))
-      //{
-        LOG_DEBUG("Inserting token: " << w);
-        result.append(w.toLower());
-      //}
+      LOG_TRACE("Inserting token: " << w);
+      result.append(w.toLower());
     }
   }
 
@@ -623,15 +756,9 @@ QStringList AddImplicitlyDerivedTagsBaseVisitor::_getNameTokens(const QStringLis
   for (int i = 0; i < result.size(); i++)
   {
     const QString name = result.at(i);
-    //These were already handled in rules derivation and are just causing bugs at this point.
-    //TODO: all filtering logic needs to be moved out of this class.
-    //if (name.length() >= _minWordLength &&
-    //    !_customRules.getWordIgnoreList().contains(name.toLower()))
-    //{
-      filteredNames.append(name);
-    //}
+    filteredNames.append(name);
   }
-  LOG_VARD(filteredNames);
+  LOG_VART(filteredNames);
 
   return filteredNames;
 }
