@@ -28,7 +28,7 @@
 // Hoot
 #include <hoot/core/util/Factory.h>
 #include <hoot/core/cmd/BaseCommand.h>
-#include <hoot/rnd/io/ImplicitTagRulesSqliteReader.h>
+#include <hoot/core/io/ImplicitTagRulesSqliteReader.h>
 
 namespace hoot
 {

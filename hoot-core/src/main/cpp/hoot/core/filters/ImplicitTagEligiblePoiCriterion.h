@@ -22,38 +22,37 @@
  * This will properly maintain the copyright information. DigitalGlobe
  * copyrights will be updated automatically.
  *
- * @copyright Copyright (C) 2017 DigitalGlobe (http://www.digitalglobe.com/)
+ * @copyright Copyright (C) 2015, 2016, 2017 DigitalGlobe (http://www.digitalglobe.com/)
  */
-#ifndef IMPLICITPOITAGGER_H
-#define IMPLICITPOITAGGER_H
+#ifndef IMPLICIT_TAG_ELIGIBLE_POI_CRITERION_H
+#define IMPLICIT_TAG_ELIGIBLE_POI_CRITERION_H
 
 // hoot
-#include <hoot/rnd/visitors/ImplicitTaggerBase.h>
+#include <hoot/core/filters/ImplicitTagEligibleCriterion.h>
 
 namespace hoot
 {
 
 /**
- * Adds tags implicitly derived from POI names to POIs
- *
- * Relevant configuration options are those beginning with implicit.tagger.poi.* in
- * conf/core/ConfigOptions.asciidoc.
+ * A criterion that is only satisified with POIs.
  */
-class ImplicitPoiTagger : public ImplicitTaggerBase
+class ImplicitTagEligiblePoiCriterion : public ImplicitTagEligibleCriterion
 {
 public:
 
-  static std::string className() { return "hoot::ImplicitPoiTagger"; }
+  static std::string className() { return "hoot::ImplicitTagEligiblePoiCriterion"; }
 
-  ImplicitPoiTagger();
-  ImplicitPoiTagger(const QString databasePath);
+  ImplicitTagEligiblePoiCriterion() {}
 
-protected:
+  virtual bool isSatisfied(const boost::shared_ptr<const Element>& e) const;
 
-  virtual bool _visitElement(const ElementPtr& e);
+  virtual ElementCriterion* clone()
+  { return  new ImplicitTagEligiblePoiCriterion(); }
+
+  virtual QStringList getEligibleKvps(const Tags& tags) const;
+  virtual bool hasEligibleKvp(const Tags& tags) const;
 
 };
 
 }
-
-#endif // IMPLICITPOITAGGER_H
+#endif

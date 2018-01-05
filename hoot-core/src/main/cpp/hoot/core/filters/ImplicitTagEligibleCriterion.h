@@ -45,8 +45,6 @@ class ImplicitTagEligibleCriterion : public ElementCriterion
 {
 public:
 
-  //static std::string className() { return "hoot::ImplicitTagEligiblePoiCriterion"; }
-
   virtual QStringList getEligibleKvps(const Tags& tags) const = 0;
   virtual bool hasEligibleKvp(const Tags& tags) const = 0;
 

@@ -28,7 +28,7 @@
 // Hoot
 #include <hoot/core/util/Factory.h>
 #include <hoot/core/cmd/BaseCommand.h>
-#include <hoot/rnd/schema/ImplicitTagRawRulesDeriver.h>
+#include <hoot/core/schema/ImplicitTagRawRulesDeriver.h>
 
 namespace hoot
 {
